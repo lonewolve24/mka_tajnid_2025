@@ -1,0 +1,31 @@
+{% extends 'tagnid/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>For: <strong>{{ registration.first_name }} {{ registration.last_name }}</strong></p>
+<a href="{% url 'tagnid:registration_detail' registration.pk %}" class="btn btn-secondary">Back to Registration</a>
+
+<div class="form-container">
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="form-group">
+        <label for="{{ form.blood_group.id_for_label }}">Blood Group (Optional):</label>
+        {{ form.blood_group }}
+        {{ form.blood_group.errors }}
+    </div>
+    
+    <div class="form-group">
+        <label for="{{ form.height.id_for_label }}">Height in cm (Optional):</label>
+        {{ form.height }}
+        {{ form.height.errors }}
+    </div>
+    
+    <button type="submit" class="btn btn-success">Save</button>
+    <a href="{% url 'tagnid:registration_detail' registration.pk %}" class="btn btn-secondary">Cancel</a>
+</form>
+</div>
+{% endblock %}
+

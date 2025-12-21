@@ -1,0 +1,44 @@
+{% extends 'tagnid/base.html' %}
+
+{% block title %}Registration List{% endblock %}
+
+{% block content %}
+<h1>Registration List</h1>
+<a href="{% url 'tagnid:registration_create' %}" class="btn btn-primary">Create New Registration</a>
+
+{% if registrations %}
+    <table>
+        <thead>
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Region</th>
+                <th>Majilis</th>
+                <th>Date of Birth</th>
+                <th>Age</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for registration in registrations %}
+            <tr>
+                <td>{{ registration.first_name }}</td>
+                <td>{{ registration.last_name }}</td>
+                <td>{{ registration.get_region_display }}</td>
+                <td>{{ registration.get_majilis_display }}</td>
+                <td>{{ registration.dob|default:"Not provided" }}</td>
+                <td>{{ registration.age|default:"N/A" }}</td>
+                <td>
+                    <a href="{% url 'tagnid:registration_detail' registration.pk %}" class="btn btn-secondary">View</a>
+                    <a href="{% url 'tagnid:registration_update' registration.pk %}" class="btn btn-primary">Edit</a>
+                    <a href="{% url 'tagnid:registration_delete' registration.pk %}" class="btn btn-danger">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No registrations found. <a href="{% url 'tagnid:registration_create' %}">Create one now</a>.</p>
+{% endif %}
+{% endblock %}
+

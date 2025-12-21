@@ -1,0 +1,89 @@
+{% extends 'tagnid/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<!-- Total Registrations Card -->
+<div class="stats-container">
+    <div class="stat-card">
+        <h3>Total Registrations</h3>
+        <div class="stat-number">{{ total_registrations }}</div>
+        <div class="stat-label">Registered Members</div>
+    </div>
+</div>
+
+<!-- Statistics by Region -->
+<div class="stats-table-container">
+    <h2>Statistics by Region</h2>
+    {% if region_stats %}
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Region</th>
+                    <th>Count</th>
+                    <th>Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in region_stats %}
+                <tr>
+                    <td>{{ stat.name }}</td>
+                    <td><strong>{{ stat.count }}</strong></td>
+                    <td>
+                        {% if total_registrations > 0 %}
+                            {% widthratio stat.count total_registrations 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No registration data available.</p>
+    {% endif %}
+</div>
+
+<!-- Statistics by Majilis -->
+<div class="stats-table-container">
+    <h2>Statistics by Majilis</h2>
+    {% if majilis_stats %}
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Majilis</th>
+                    <th>Count</th>
+                    <th>Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in majilis_stats %}
+                <tr>
+                    <td>{{ stat.name }}</td>
+                    <td><strong>{{ stat.count }}</strong></td>
+                    <td>
+                        {% if total_registrations > 0 %}
+                            {% widthratio stat.count total_registrations 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No majilis data available.</p>
+    {% endif %}
+</div>
+
+<div style="margin-top: 30px;">
+    <a href="{% url 'tagnid:registration_list' %}" class="btn btn-primary">View All Registrations</a>
+    <a href="{% url 'tagnid:registration_create' %}" class="btn btn-success">Create New Registration</a>
+</div>
+{% endblock %}
+

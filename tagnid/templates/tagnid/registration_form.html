@@ -1,0 +1,48 @@
+{% extends 'tagnid/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<a href="{% url 'tagnid:registration_list' %}" class="btn btn-secondary">Back to List</a>
+
+<div class="form-container">
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="form-group">
+        <label for="{{ form.first_name.id_for_label }}">First Name:</label>
+        {{ form.first_name }}
+        {{ form.first_name.errors }}
+    </div>
+    
+    <div class="form-group">
+        <label for="{{ form.last_name.id_for_label }}">Last Name:</label>
+        {{ form.last_name }}
+        {{ form.last_name.errors }}
+    </div>
+    
+    <div class="form-group">
+        <label for="{{ form.dob.id_for_label }}">Date of Birth (Optional):</label>
+        {{ form.dob }}
+        {{ form.dob.errors }}
+    </div>
+    
+    <div class="form-group">
+        <label for="{{ form.region.id_for_label }}">Region:</label>
+        {{ form.region }}
+        {{ form.region.errors }}
+    </div>
+    
+    <div class="form-group">
+        <label for="{{ form.majilis.id_for_label }}">Majilis: <span style="color: red;">*</span></label>
+        {{ form.majilis }}
+        {{ form.majilis.errors }}
+    </div>
+    
+    <button type="submit" class="btn btn-success">Save</button>
+    <a href="{% url 'tagnid:registration_list' %}" class="btn btn-secondary">Cancel</a>
+</form>
+</div>
+{% endblock %}
+

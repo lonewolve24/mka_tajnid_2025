@@ -1,0 +1,60 @@
+{% extends 'tagnid/base.html' %}
+
+{% block title %}Registration Detail{% endblock %}
+
+{% block content %}
+<h1>Registration Detail</h1>
+<a href="{% url 'tagnid:registration_list' %}" class="btn btn-secondary">Back to List</a>
+<a href="{% url 'tagnid:registration_update' registration.pk %}" class="btn btn-primary">Edit</a>
+<a href="{% url 'tagnid:registration_delete' registration.pk %}" class="btn btn-danger">Delete</a>
+
+<div class="detail-section">
+    <h2>Personal Information</h2>
+    <div class="detail-row">
+        <div class="detail-label">First Name:</div>
+        <div class="detail-value">{{ registration.first_name }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Last Name:</div>
+        <div class="detail-value">{{ registration.last_name }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Date of Birth:</div>
+        <div class="detail-value">{{ registration.dob|default:"Not provided" }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Age:</div>
+        <div class="detail-value">{{ registration.age|default:"N/A" }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Region:</div>
+        <div class="detail-value">{{ registration.get_region_display }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Majilis:</div>
+        <div class="detail-value">{{ registration.get_majilis_display }}</div>
+    </div>
+</div>
+
+<div class="detail-section">
+    <h2>Vitals Information</h2>
+    {% if vitals %}
+        <div class="detail-row">
+            <div class="detail-label">Blood Group:</div>
+            <div class="detail-value">{{ vitals.blood_group|default:"Not provided" }}</div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-label">Height:</div>
+            <div class="detail-value">{{ vitals.height|default:"Not provided" }}{% if vitals.height %} cm{% endif %}</div>
+        </div>
+        <div style="margin-top: 15px;">
+            <a href="{% url 'tagnid:vitals_update' registration.pk %}" class="btn btn-primary">Update Vitals</a>
+            <a href="{% url 'tagnid:vitals_delete' registration.pk %}" class="btn btn-danger">Delete Vitals</a>
+        </div>
+    {% else %}
+        <p>No vitals information available.</p>
+        <a href="{% url 'tagnid:vitals_create' registration.pk %}" class="btn btn-success">Add Vitals</a>
+    {% endif %}
+</div>
+{% endblock %}
+

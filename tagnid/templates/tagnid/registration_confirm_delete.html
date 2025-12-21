@@ -1,0 +1,16 @@
+{% extends 'tagnid/base.html' %}
+
+{% block title %}Delete Registration{% endblock %}
+
+{% block content %}
+<h1>Delete Registration</h1>
+<p>Are you sure you want to delete the registration for <strong>{{ registration.first_name }} {{ registration.last_name }}</strong>?</p>
+<p>This action cannot be undone.</p>
+
+<form method="post" style="margin-top: 20px;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+    <a href="{% url 'tagnid:registration_list' %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}
+
