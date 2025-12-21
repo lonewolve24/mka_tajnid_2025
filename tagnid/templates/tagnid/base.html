@@ -33,5 +33,28 @@
         {% block content %}
         {% endblock %}
     </div>
+    
+    <script>
+        // Auto-hide messages after 7 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const messages = document.querySelectorAll('.message');
+            messages.forEach(function(message) {
+                // Show message with fade-in
+                message.style.opacity = '0';
+                message.style.transition = 'opacity 0.3s ease-in-out';
+                setTimeout(function() {
+                    message.style.opacity = '1';
+                }, 100);
+                
+                // Hide message after 7 seconds with fade-out
+                setTimeout(function() {
+                    message.style.opacity = '0';
+                    setTimeout(function() {
+                        message.style.display = 'none';
+                    }, 300); // Wait for fade-out animation
+                }, 7000); // 7 seconds
+            });
+        });
+    </script>
 </body>
 </html>
