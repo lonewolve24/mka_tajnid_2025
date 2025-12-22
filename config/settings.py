@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 from decouple import config, Csv
 
@@ -84,15 +84,16 @@ if DEBUG:
         }
     }
 else:
-    # Production database - PostgreSQL (load from .env file)
+    # Production database - PostgreSQL (Railway automatically provides these)
+    # Railway uses: PGDATABASE, PGUSER, PGPASSWORD, PGHOST, PGPORT
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('DB_NAME', default='tagnid'),
-            'USER': config('DB_USER', default='tagnid'),
-            'PASSWORD': config('DB_PASSWORD', default='tagnid'),
-            'HOST': config('DB_HOST', default='localhost'),
-            'PORT': config('DB_PORT', default='5432'),
+            'NAME': os.environ.get('PGDATABASE', 'railway'),
+            'USER': os.environ.get('PGUSER', 'postgres'),
+            'PASSWORD': os.environ.get('PGPASSWORD', ''),
+            'HOST': os.environ.get('PGHOST', 'localhost'),
+            'PORT': os.environ.get('PGPORT', '5432'),
         }
     }
 
