@@ -4,6 +4,6 @@
         "builder": "RAILPACK"
     },
     "deploy": {
-        "startCommand": "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn config.wsgi:application"
+        "startCommand": "python manage.py migrate && python manage.py collectstatic --noinput && python manage.py create_superuser_if_none --noinput || true && gunicorn config.wsgi:application"
     }
 }

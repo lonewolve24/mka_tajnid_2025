@@ -20,27 +20,31 @@
    - Password: (choose a strong password)
    - Password (again): (confirm password)
 
-## Method 2: Railway CLI
+## Method 2: Railway Web Console (If you can't find it)
 
-1. Install Railway CLI:
-   ```bash
-   npm i -g @railway/cli
-   ```
+**How to find Railway Console:**
+1. Go to https://railway.app
+2. Click on your project
+3. Click on your **service** (the Django app, not PostgreSQL)
+4. Look for tabs: **"Deployments"**, **"Metrics"**, **"Settings"**
+5. In the **"Deployments"** tab, find your latest deployment
+6. Click the **three dots (⋮)** or **"View Logs"** button
+7. Look for **"Shell"** or **"Console"** button - click it
+8. A terminal will open where you can run commands
 
-2. Login to Railway:
-   ```bash
-   railway login
-   ```
+**Alternative locations:**
+- Sometimes it's in the top right corner as a terminal icon
+- Or in the service settings under "Connect" or "Shell"
 
-3. Link to your project:
-   ```bash
-   railway link
-   ```
+## Method 3: Railway CLI (Note: Has Limitations)
 
-4. Create superuser:
-   ```bash
-   railway run python manage.py createsuperuser
-   ```
+⚠️ **Important:** `railway run` tries to use Railway's internal database hostname which doesn't work from your local machine. Use Method 1 (Web Console) instead.
+
+If you still want to try CLI:
+1. Install Railway CLI: `npm i -g @railway/cli`
+2. Login: `railway login`
+3. Link: `railway link`
+4. **This won't work for database commands** - use web console instead!
 
 ## Method 3: One-Time Auto-Creation (Advanced)
 
