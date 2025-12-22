@@ -11,7 +11,7 @@ class Registration(models.Model):
         ('NBR1', 'NBR1'),
         ('NBR2', 'NBR2'),
         ('BANJUL_KOMBO', 'BANJUL KOMBO'),
-        ('WEST_COAST', 'WEST COAST'),
+        ('FONI', 'Foni'),
     ]
     
     MAJILIS_CHOICES = [

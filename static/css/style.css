@@ -33,29 +33,29 @@ body {
     justify-content: space-between;
     align-items: center;
     border: 1px solid #e0e0e0;
-    flex-wrap: nowrap;
-    gap: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .navbar-brand {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     color: #000;
     text-decoration: none;
     line-height: 1.3;
+    flex: 0 1 auto;
     white-space: nowrap;
-    flex-shrink: 1;
-    min-width: 0;
 }
 
 .navbar-nav {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     list-style: none;
     margin: 0;
     padding: 0;
     flex-wrap: nowrap;
     flex-shrink: 0;
+    flex: 0 0 auto;
 }
 
 .navbar-nav li {
@@ -447,6 +447,21 @@ label {
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+    .navbar-brand {
+        font-size: 14px;
+    }
+    
+    .navbar-nav {
+        gap: 6px;
+    }
+    
+    .navbar-nav a {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 15px;
