@@ -17,8 +17,8 @@ class Registration(models.Model):
     AUXILIARY_BODY_CHOICES = [
         ('Atfal', 'Atfal'),
         ('Khuddam', 'Khuddam'),
-        ('ANSAR', 'ANSAR'),
-        ('GUEST', 'GUEST'),
+        ('Ansar', 'Ansar'),
+        ('Guest', 'Guest'),
     ]
     
     first_name = models.CharField(max_length=100)

@@ -9,7 +9,7 @@ def create_registration(first_name, last_name, region, auxiliary_body, dob=None)
         first_name: First name of the person
         last_name: Last name of the person
         region: Region choice (URR, LRR, CRR, etc.)
-        auxiliary_body: Auxiliary Body choice (Atfal, Khuddam, ANSAR, GUEST)
+        auxiliary_body: Auxiliary Body choice (Atfal, Khuddam, Ansar, Guest)
         dob: Date of birth (optional)
     
     Returns:
