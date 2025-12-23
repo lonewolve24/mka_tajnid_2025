@@ -54,12 +54,12 @@ def dashboard(request):
         count=Count('id')
     ).order_by('-count')
     
-    # Statistics by majilis
-    majilis_stats = Registration.objects.values('majilis').annotate(
+    # Statistics by auxiliary body
+    auxiliary_body_stats = Registration.objects.values('auxiliary_body').annotate(
         count=Count('id')
     ).order_by('-count')
     
-    # Get display names for regions and majilis
+    # Get display names for regions and auxiliary body
     region_data = []
     for stat in region_stats:
         region_data.append({
@@ -67,17 +67,17 @@ def dashboard(request):
             'count': stat['count']
         })
     
-    majilis_data = []
-    for stat in majilis_stats:
-        majilis_data.append({
-            'name': dict(Registration.MAJILIS_CHOICES).get(stat['majilis'], stat['majilis']),
+    auxiliary_body_data = []
+    for stat in auxiliary_body_stats:
+        auxiliary_body_data.append({
+            'name': dict(Registration.AUXILIARY_BODY_CHOICES).get(stat['auxiliary_body'], stat['auxiliary_body']),
             'count': stat['count']
         })
     
     return render(request, 'tagnid/dashboard.html', {
         'total_registrations': total_registrations,
         'region_stats': region_data,
-        'majilis_stats': majilis_data,
+        'auxiliary_body_stats': auxiliary_body_data,
     })
 
 

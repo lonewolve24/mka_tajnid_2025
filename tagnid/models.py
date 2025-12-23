@@ -11,11 +11,11 @@ class Registration(models.Model):
         ('NBR1', 'NBR1'),
         ('NBR2', 'NBR2'),
         ('BANJUL_KOMBO', 'BANJUL KOMBO'),
-        ('FONI', 'Foni'),
+        ('FONI', 'FONI'),
     ]
     
-    MAJILIS_CHOICES = [
-        ('ATAFL', 'ATAFL'),
+    AUXILIARY_BODY_CHOICES = [
+        ('Atfal', 'Atfal'),
         ('Khuddam', 'Khuddam'),
         ('ANSAR', 'ANSAR'),
         ('GUEST', 'GUEST'),
@@ -25,7 +25,7 @@ class Registration(models.Model):
     last_name = models.CharField(max_length=100)
     dob = models.DateField(null=True, blank=True, verbose_name='Date of Birth')
     region = models.CharField(max_length=20, choices=REGION_CHOICES)
-    majilis = models.CharField(max_length=20, choices=MAJILIS_CHOICES)
+    auxiliary_body = models.CharField(max_length=20, choices=AUXILIARY_BODY_CHOICES, verbose_name='Auxiliary Body')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

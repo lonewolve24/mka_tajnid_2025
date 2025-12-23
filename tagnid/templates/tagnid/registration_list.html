@@ -13,7 +13,7 @@
                 <th>First Name</th>
                 <th>Last Name</th>
                 <th>Region</th>
-                <th>Majilis</th>
+                <th>Auxiliary Body</th>
                 <th>Date of Birth</th>
                 <th>Age</th>
                 <th>Actions</th>
@@ -25,7 +25,7 @@
                 <td>{{ registration.first_name }}</td>
                 <td>{{ registration.last_name }}</td>
                 <td>{{ registration.get_region_display }}</td>
-                <td>{{ registration.get_majilis_display }}</td>
+                <td>{{ registration.get_auxiliary_body_display }}</td>
                 <td>{{ registration.dob|default:"Not provided" }}</td>
                 <td>{{ registration.age|default:"N/A" }}</td>
                 <td>

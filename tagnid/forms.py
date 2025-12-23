@@ -22,7 +22,7 @@ class CustomLoginForm(AuthenticationForm):
 class RegistrationForm(forms.ModelForm):
     class Meta:
         model = Registration
-        fields = ['first_name', 'last_name', 'dob', 'region', 'majilis']
+        fields = ['first_name', 'last_name', 'dob', 'region', 'auxiliary_body']
         widgets = {
             'first_name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -40,7 +40,7 @@ class RegistrationForm(forms.ModelForm):
             'region': forms.Select(attrs={
                 'class': 'form-control'
             }),
-            'majilis': forms.Select(attrs={
+            'auxiliary_body': forms.Select(attrs={
                 'class': 'form-control'
             }),
         }
@@ -50,7 +50,7 @@ class RegistrationForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['majilis'].required = True
+        self.fields['auxiliary_body'].required = True
         self.fields['dob'].required = False
 
 

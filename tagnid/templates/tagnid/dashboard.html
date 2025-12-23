@@ -48,20 +48,20 @@
     {% endif %}
 </div>
 
-<!-- Statistics by Majilis -->
+<!-- Statistics by Auxiliary Body -->
 <div class="stats-table-container">
-    <h2>Statistics by Majilis</h2>
-    {% if majilis_stats %}
+    <h2>Statistics by Auxiliary Body</h2>
+    {% if auxiliary_body_stats %}
         <table class="stats-table">
             <thead>
                 <tr>
-                    <th>Majilis</th>
+                    <th>Auxiliary Body</th>
                     <th>Count</th>
                     <th>Percentage</th>
                 </tr>
             </thead>
             <tbody>
-                {% for stat in majilis_stats %}
+                {% for stat in auxiliary_body_stats %}
                 <tr>
                     <td>{{ stat.name }}</td>
                     <td><strong>{{ stat.count }}</strong></td>
@@ -77,7 +77,7 @@
             </tbody>
         </table>
     {% else %}
-        <p>No majilis data available.</p>
+        <p>No auxiliary body data available.</p>
     {% endif %}
 </div>
 

@@ -1,7 +1,7 @@
 from .models import Registration, Vitals
 
 
-def create_registration(first_name, last_name, region, majilis, dob=None):
+def create_registration(first_name, last_name, region, auxiliary_body, dob=None):
     """
     Service function to create a new registration
     
@@ -9,7 +9,7 @@ def create_registration(first_name, last_name, region, majilis, dob=None):
         first_name: First name of the person
         last_name: Last name of the person
         region: Region choice (URR, LRR, CRR, etc.)
-        majilis: Majilis choice (ATAFL, Khuddam, ANSAR, GUEST)
+        auxiliary_body: Auxiliary Body choice (Atfal, Khuddam, ANSAR, GUEST)
         dob: Date of birth (optional)
     
     Returns:
@@ -19,7 +19,7 @@ def create_registration(first_name, last_name, region, majilis, dob=None):
         first_name=first_name,
         last_name=last_name,
         region=region,
-        majilis=majilis,
+        auxiliary_body=auxiliary_body,
         dob=dob
     )
     return registration
@@ -31,7 +31,7 @@ def update_registration(registration_id, **kwargs):
     
     Args:
         registration_id: ID of the registration to update
-        **kwargs: Fields to update (first_name, last_name, dob, region, majilis)
+        **kwargs: Fields to update (first_name, last_name, dob, region, auxiliary_body)
     
     Returns:
         Updated Registration object
