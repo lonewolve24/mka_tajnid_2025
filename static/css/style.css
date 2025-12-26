@@ -563,4 +563,17 @@ label {
     .login-container h1 {
         font-size: 18px;
     }
+    
+    .filter-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    table {
+        font-size: 12px;
+    }
+    
+    table th,
+    table td {
+        padding: 8px 4px;
+    }
 }

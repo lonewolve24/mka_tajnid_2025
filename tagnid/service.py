@@ -1,4 +1,5 @@
 from .models import Registration, Vitals
+from django.db import transaction
 
 
 def create_registration(first_name, last_name, region, auxiliary_body, dob=None):
@@ -148,4 +149,15 @@ def delete_vitals(registration_id):
         raise Registration.DoesNotExist(f"Registration with id {registration_id} does not exist")
     except Vitals.DoesNotExist:
         raise Vitals.DoesNotExist(f"Vitals for registration {registration_id} does not exist")
+
+
+def backfill_unique_codes():
+    """
+    Service function to backfill unique codes for all registrations that don't have one
+    
+    Returns:
+        Number of registrations updated
+    """
+    with transaction.atomic():
+        return Registration.objects.backfill_unique_codes()
 

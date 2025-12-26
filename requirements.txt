@@ -1,8 +1,11 @@
 asgiref==3.11.0
 Django==6.0
 gunicorn==22.0.0
+packaging==25.0
+pillow==12.0.0
 psycopg2
 python-decouple==3.8
 sqlparse==0.5.5
 whitenoise==6.7.0
+reportlab==4.0.7
 

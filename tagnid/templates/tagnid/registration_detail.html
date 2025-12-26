@@ -9,6 +9,14 @@
 <a href="{% url 'tagnid:registration_delete' registration.pk %}" class="btn btn-danger">Delete</a>
 
 <div class="detail-section">
+    <h2>Registration Information</h2>
+    <div class="detail-row">
+        <div class="detail-label">Unique Code:</div>
+        <div class="detail-value"><strong>{{ registration.unique_code|default:"Not assigned" }}</strong></div>
+    </div>
+</div>
+
+<div class="detail-section">
     <h2>Personal Information</h2>
     <div class="detail-row">
         <div class="detail-label">First Name:</div>

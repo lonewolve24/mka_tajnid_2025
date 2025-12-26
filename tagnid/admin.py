@@ -4,11 +4,14 @@ from .models import Registration, Vitals
 
 @admin.register(Registration)
 class RegistrationAdmin(admin.ModelAdmin):
-    list_display = ['first_name', 'last_name', 'region', 'auxiliary_body', 'dob', 'age', 'created_at']
+    list_display = ['unique_code', 'first_name', 'last_name', 'region', 'auxiliary_body', 'dob', 'age', 'created_at']
     list_filter = ['region', 'auxiliary_body', 'created_at']
-    search_fields = ['first_name', 'last_name']
-    readonly_fields = ['age', 'created_at', 'updated_at']
+    search_fields = ['first_name', 'last_name', 'unique_code']
+    readonly_fields = ['unique_code', 'age', 'created_at', 'updated_at']
     fieldsets = (
+        ('Registration Code', {
+            'fields': ('unique_code',)
+        }),
         ('Personal Information', {
             'fields': ('first_name', 'last_name', 'dob')
         }),

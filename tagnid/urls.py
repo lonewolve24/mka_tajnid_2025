@@ -17,6 +17,9 @@ urlpatterns = [
     
     # Registration URLs
     path('registrations/', views.registration_list, name='registration_list'),
+    path('registrations/export/', views.export_registrations, name='export_registrations'),
+    path('registrations/export/pdf/', views.export_registrations_pdf, name='export_registrations_pdf'),
+    path('registrations/export/pdf/preview/', views.export_registrations_pdf_preview, name='export_registrations_pdf_preview'),
     path('registration/create/', views.registration_create, name='registration_create'),
     path('registration/<int:pk>/', views.registration_detail, name='registration_detail'),
     path('registration/<int:pk>/update/', views.registration_update, name='registration_update'),

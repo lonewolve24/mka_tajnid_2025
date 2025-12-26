@@ -4,12 +4,77 @@
 
 {% block content %}
 <h1>Registration List</h1>
-<a href="{% url 'tagnid:registration_create' %}" class="btn btn-primary">Create New Registration</a>
+
+<!-- Search and Filter Form -->
+<form method="get" action="{% url 'tagnid:registration_list' %}" style="margin-bottom: 20px; background: #fdf4e3; padding: 20px; border-radius: 8px; border: 2px solid #000;">
+    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: end;" class="filter-grid">
+        <!-- Search Bar -->
+        <div>
+            <label for="search" style="display: block; margin-bottom: 5px; font-weight: bold;">Search (Name or Unique Code):</label>
+            <input 
+                type="text" 
+                id="search" 
+                name="search" 
+                value="{{ search_query }}" 
+                placeholder="Search by name or unique code..."
+                style="width: 100%; padding: 10px; border: 2px solid #000; border-radius: 4px; font-size: 16px;"
+            >
+        </div>
+        
+        <!-- Region Filter -->
+        <div>
+            <label for="region" style="display: block; margin-bottom: 5px; font-weight: bold;">Filter by Region:</label>
+            <select 
+                id="region" 
+                name="region" 
+                style="width: 100%; padding: 10px; border: 2px solid #000; border-radius: 4px; font-size: 16px; background: white;"
+            >
+                <option value="">All Regions</option>
+                {% for value, label in region_choices %}
+                    <option value="{{ value }}" {% if region_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Auxiliary Body Filter -->
+        <div>
+            <label for="auxiliary_body" style="display: block; margin-bottom: 5px; font-weight: bold;">Filter by Auxiliary Body:</label>
+            <select 
+                id="auxiliary_body" 
+                name="auxiliary_body" 
+                style="width: 100%; padding: 10px; border: 2px solid #000; border-radius: 4px; font-size: 16px; background: white;"
+            >
+                <option value="">All Auxiliary Bodies</option>
+                {% for value, label in auxiliary_body_choices %}
+                    <option value="{{ value }}" {% if auxiliary_body_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Buttons -->
+        <div style="display: flex; gap: 10px; flex-direction: column;">
+            <button type="submit" class="btn btn-primary" style="white-space: nowrap;">Apply Filters</button>
+            <a href="{% url 'tagnid:registration_list' %}" class="btn btn-secondary" style="white-space: nowrap; text-align: center;">Clear</a>
+        </div>
+    </div>
+</form>
+
+<!-- Action Buttons -->
+<div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="{% url 'tagnid:registration_create' %}" class="btn btn-primary">Create New Registration</a>
+    <div style="display: flex; gap: 10px;">
+        <a href="{% url 'tagnid:export_registrations_pdf_preview' %}?{{ request.GET.urlencode }}" class="btn btn-secondary" target="_blank">Preview PDF</a>
+        <a href="{% url 'tagnid:export_registrations_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">Download PDF</a>
+        <a href="{% url 'tagnid:export_registrations' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">Download CSV</a>
+    </div>
+</div>
 
 {% if registrations %}
+    <p style="margin-bottom: 10px; font-weight: bold;">Showing {{ registrations.count }} registration(s)</p>
     <table>
         <thead>
             <tr>
+                <th>Unique Code</th>
                 <th>First Name</th>
                 <th>Last Name</th>
                 <th>Region</th>
@@ -22,6 +87,7 @@
         <tbody>
             {% for registration in registrations %}
             <tr>
+                <td>{{ registration.unique_code|default:"N/A" }}</td>
                 <td>{{ registration.first_name }}</td>
                 <td>{{ registration.last_name }}</td>
                 <td>{{ registration.get_region_display }}</td>
