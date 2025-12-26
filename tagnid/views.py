@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count, Q
 import csv
 from datetime import datetime
@@ -111,13 +112,33 @@ def registration_list(request):
     # Order by creation date (newest first)
     registrations = registrations.order_by('-created_at')
     
+    # Pagination - 20 per page
+    paginator = Paginator(registrations, 20)
+    page = request.GET.get('page', 1)
+    
+    try:
+        registrations_page = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        registrations_page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range, deliver last page
+        registrations_page = paginator.page(paginator.num_pages)
+    
+    # Build query string for pagination (preserve filters and search)
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
+    query_string = query_params.urlencode()
+    
     return render(request, 'tagnid/registration_list.html', {
-        'registrations': registrations,
+        'registrations': registrations_page,
         'search_query': search_query,
         'region_filter': region_filter,
         'auxiliary_body_filter': auxiliary_body_filter,
         'region_choices': Registration.REGION_CHOICES,
         'auxiliary_body_choices': Registration.AUXILIARY_BODY_CHOICES,
+        'query_string': query_string,
     })
 
 

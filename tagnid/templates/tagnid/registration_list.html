@@ -70,7 +70,9 @@
 </div>
 
 {% if registrations %}
-    <p style="margin-bottom: 10px; font-weight: bold;">Showing {{ registrations.count }} registration(s)</p>
+    <p style="margin-bottom: 10px; font-weight: bold;">
+        Showing {{ registrations.start_index }} to {{ registrations.end_index }} of {{ registrations.paginator.count }} registration(s)
+    </p>
     <table>
         <thead>
             <tr>
@@ -103,6 +105,31 @@
             {% endfor %}
         </tbody>
     </table>
+    
+    <!-- Pagination Controls -->
+    {% if registrations.has_other_pages %}
+    <div class="pagination" style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;">
+        {% if registrations.has_previous %}
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page=1" class="btn btn-secondary">First</a>
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ registrations.previous_page_number }}" class="btn btn-secondary">Previous</a>
+        {% else %}
+            <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">First</span>
+            <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">Previous</span>
+        {% endif %}
+        
+        <span style="padding: 10px 15px; font-weight: bold; background: #fdf4e3; border: 2px solid #000; border-radius: 4px;">
+            Page {{ registrations.number }} of {{ registrations.paginator.num_pages }}
+        </span>
+        
+        {% if registrations.has_next %}
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ registrations.next_page_number }}" class="btn btn-secondary">Next</a>
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ registrations.paginator.num_pages }}" class="btn btn-secondary">Last</a>
+        {% else %}
+            <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">Next</span>
+            <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">Last</span>
+        {% endif %}
+    </div>
+    {% endif %}
 {% else %}
     <p>No registrations found. <a href="{% url 'tagnid:registration_create' %}">Create one now</a>.</p>
 {% endif %}
