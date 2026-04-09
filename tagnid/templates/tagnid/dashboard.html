@@ -108,16 +108,20 @@
             {% if profile.gender_scope %}– {{ profile.gender_scope }} only{% endif %}
         </div>
     </div>
+    {% if not profile.gender_scope or profile.gender_scope == 'Male' %}
     <div class="stat-card">
         <h3>Male</h3>
         <div class="stat-number" style="color:#1a73e8;">{{ total_male }}</div>
         <div class="stat-label">Registered</div>
     </div>
+    {% endif %}
+    {% if not profile.gender_scope or profile.gender_scope == 'Female' %}
     <div class="stat-card">
         <h3>Female</h3>
         <div class="stat-number" style="color:#e53935;">{{ total_female }}</div>
         <div class="stat-label">Registered</div>
     </div>
+    {% endif %}
 </div>
 
 <!-- Region × Gender Chart + Table -->
@@ -141,9 +145,15 @@
             <thead>
                 <tr>
                     <th style="text-align:left;">Region</th>
+                    {% if not profile.gender_scope or profile.gender_scope == 'Male' %}
                     <th><span class="badge-male">Male</span></th>
+                    {% endif %}
+                    {% if not profile.gender_scope or profile.gender_scope == 'Female' %}
                     <th><span class="badge-female">Female</span></th>
+                    {% endif %}
+                    {% if not profile.gender_scope %}
                     <th><span class="badge-total">Total</span></th>
+                    {% endif %}
                     <th>%</th>
                 </tr>
             </thead>
@@ -151,9 +161,15 @@
                 {% for r in region_breakdown %}
                 <tr>
                     <td>{{ r.name }}</td>
+                    {% if not profile.gender_scope or profile.gender_scope == 'Male' %}
                     <td>{{ r.male }}</td>
+                    {% endif %}
+                    {% if not profile.gender_scope or profile.gender_scope == 'Female' %}
                     <td>{{ r.female }}</td>
+                    {% endif %}
+                    {% if not profile.gender_scope %}
                     <td><strong>{{ r.total }}</strong></td>
+                    {% endif %}
                     <td>{% if total_registrations > 0 %}{% widthratio r.total total_registrations 100 %}%{% else %}0%{% endif %}</td>
                 </tr>
                 {% endfor %}
@@ -161,9 +177,15 @@
             <tfoot>
                 <tr style="border-top:2px solid #ccc;background:#f9f9f9;">
                     <td><strong>Total</strong></td>
+                    {% if not profile.gender_scope or profile.gender_scope == 'Male' %}
                     <td><strong>{{ total_male }}</strong></td>
+                    {% endif %}
+                    {% if not profile.gender_scope or profile.gender_scope == 'Female' %}
                     <td><strong>{{ total_female }}</strong></td>
+                    {% endif %}
+                    {% if not profile.gender_scope %}
                     <td><strong>{{ total_registrations }}</strong></td>
+                    {% endif %}
                     <td>100%</td>
                 </tr>
             </tfoot>
@@ -237,29 +259,35 @@
     const labels  = [{% for r in region_breakdown %}"{{ r.name }}"{% if not forloop.last %},{% endif %}{% endfor %}];
     const maleCounts    = [{% for r in region_breakdown %}{{ r.male }}{% if not forloop.last %},{% endif %}{% endfor %}];
     const femaleCounts  = [{% for r in region_breakdown %}{{ r.female }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const genderScope   = "{{ profile.gender_scope }}";  // 'Male', 'Female', or ''
+
+    const datasets = [];
+    if (!genderScope || genderScope === 'Male') {
+        datasets.push({
+            label: 'Male',
+            data: maleCounts,
+            backgroundColor: 'rgba(26, 115, 232, 0.8)',
+            borderColor: 'rgba(26, 115, 232, 1)',
+            borderWidth: 1,
+            borderRadius: 4,
+        });
+    }
+    if (!genderScope || genderScope === 'Female') {
+        datasets.push({
+            label: 'Female',
+            data: femaleCounts,
+            backgroundColor: 'rgba(229, 57, 53, 0.8)',
+            borderColor: 'rgba(229, 57, 53, 1)',
+            borderWidth: 1,
+            borderRadius: 4,
+        });
+    }
 
     new Chart(document.getElementById('regionChart'), {
         type: 'bar',
         data: {
             labels: labels,
-            datasets: [
-                {
-                    label: 'Male',
-                    data: maleCounts,
-                    backgroundColor: 'rgba(26, 115, 232, 0.8)',
-                    borderColor: 'rgba(26, 115, 232, 1)',
-                    borderWidth: 1,
-                    borderRadius: 4,
-                },
-                {
-                    label: 'Female',
-                    data: femaleCounts,
-                    backgroundColor: 'rgba(229, 57, 53, 0.8)',
-                    borderColor: 'rgba(229, 57, 53, 1)',
-                    borderWidth: 1,
-                    borderRadius: 4,
-                },
-            ]
+            datasets: datasets,
         },
         options: {
             responsive: true,
