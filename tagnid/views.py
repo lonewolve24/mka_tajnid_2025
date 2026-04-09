@@ -159,15 +159,43 @@ def dashboard(request):
     base_qs = apply_role_scope(base_qs, profile)
 
     total_registrations = base_qs.count()
+    total_male = base_qs.filter(gender='Male').count()
+    total_female = base_qs.filter(gender='Female').count()
 
-    region_stats = base_qs.values('region').annotate(count=Count('id')).order_by('-count')
+    region_choices_map = dict(Registration.REGION_CHOICES)
+
+    # Region × gender breakdown (for chart)
+    region_gender_raw = (
+        base_qs
+        .values('region', 'gender')
+        .annotate(count=Count('id'))
+        .order_by('region', 'gender')
+    )
+
+    regions_ordered = [r for r, _ in Registration.REGION_CHOICES]
+    region_breakdown = []
+    region_gender_map = {}
+    for row in region_gender_raw:
+        key = row['region']
+        region_gender_map.setdefault(key, {'Male': 0, 'Female': 0})
+        region_gender_map[key][row['gender']] = row['count']
+
+    for region_code in regions_ordered:
+        counts = region_gender_map.get(region_code, {})
+        male_count = counts.get('Male', 0)
+        female_count = counts.get('Female', 0)
+        if male_count or female_count:
+            region_breakdown.append({
+                'code': region_code,
+                'name': region_choices_map.get(region_code, region_code),
+                'male': male_count,
+                'female': female_count,
+                'total': male_count + female_count,
+            })
+
     auxiliary_body_stats = base_qs.values('auxiliary_body').annotate(count=Count('id')).order_by('-count')
     gender_stats = base_qs.values('gender').annotate(count=Count('id')).order_by('gender')
 
-    region_data = [
-        {'name': dict(Registration.REGION_CHOICES).get(s['region'], s['region']), 'count': s['count']}
-        for s in region_stats
-    ]
     auxiliary_body_data = [
         {'name': dict(Registration.AUXILIARY_BODY_CHOICES).get(s['auxiliary_body'], s['auxiliary_body']), 'count': s['count']}
         for s in auxiliary_body_stats
@@ -179,7 +207,9 @@ def dashboard(request):
 
     return render(request, 'tagnid/dashboard.html', {
         'total_registrations': total_registrations,
-        'region_stats': region_data,
+        'total_male': total_male,
+        'total_female': total_female,
+        'region_breakdown': region_breakdown,
         'auxiliary_body_stats': auxiliary_body_data,
         'gender_stats': gender_stats,
         'program_stats': program_stats,

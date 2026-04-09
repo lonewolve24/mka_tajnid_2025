@@ -361,23 +361,37 @@ class UniqueCodeTests(TestCase):
     def test_unique_code_uses_program_year(self):
         program = make_program(year=2026)
         reg = make_registration(program=program)
-        self.assertTrue(reg.unique_code.startswith('2026-'))
+        # New format: YEARSEQ, e.g. "2026001" — no dash
+        self.assertTrue(reg.unique_code.startswith('2026'))
+        self.assertNotIn('-', reg.unique_code)
 
     def test_unique_codes_are_sequential(self):
         program = make_program(year=2026)
         reg1 = make_registration(program=program, first_name='A')
         reg2 = make_registration(program=program, first_name='B')
-        num1 = int(reg1.unique_code.split('-')[1])
-        num2 = int(reg2.unique_code.split('-')[1])
+        # Strip the 4-char year prefix, rest is zero-padded seq
+        num1 = int(reg1.unique_code[4:])
+        num2 = int(reg2.unique_code[4:])
         self.assertEqual(num2, num1 + 1)
 
-    def test_unique_code_different_programs_same_year_sequential(self):
+    def test_unique_code_different_programs_same_year_start_at_one(self):
+        """Each programme resets its own sequence – both can share the same code value."""
         prog1 = make_program('P1', 2026)
         prog2 = make_program('P2', 2026)
         reg1 = make_registration(program=prog1)
         reg2 = make_registration(program=prog2)
-        # Both 2026 but codes are still globally unique
-        self.assertNotEqual(reg1.unique_code, reg2.unique_code)
+        # Both programmes start at 001 independently
+        self.assertEqual(reg1.unique_code, '2026001')
+        self.assertEqual(reg2.unique_code, '2026001')
+        # But they are in different programmes so the unique_together constraint is satisfied
+        self.assertNotEqual(reg1.program, reg2.program)
+
+    def test_unique_code_format_three_digit_seq(self):
+        program = make_program(year=2026)
+        reg = make_registration(program=program)
+        # Format: YEAR (4 chars) + SEQ (3 chars, zero-padded) = 7 chars
+        self.assertEqual(len(reg.unique_code), 7)
+        self.assertEqual(reg.unique_code, '2026001')
 
 
 # ---------------------------------------------------------------------------

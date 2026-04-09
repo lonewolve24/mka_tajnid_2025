@@ -3,14 +3,71 @@
 
 {% block title %}Dashboard{% endblock %}
 
+{% block extra_head %}
+<style>
+/* ── Print styles ────────────────────────────────────────── */
+@media print {
+    .no-print { display: none !important; }
+    body { background: #fff !important; }
+    .stats-table-container, .stats-container, .chart-card {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+    }
+    .print-header { display: block !important; }
+    .page-title-badge { background: #888 !important; }
+}
+.print-header {
+    display: none;
+    text-align: center;
+    margin-bottom: 12px;
+}
+.print-header h2 { margin: 0; font-size: 1.1rem; }
+.print-header p  { margin: 2px 0; font-size: 0.85rem; color: #555; }
+
+/* ── Chart card ─────────────────────────────────────────── */
+.chart-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    padding: 20px 24px;
+    margin-bottom: 28px;
+}
+.chart-card h2 { margin-top: 0; }
+.chart-wrapper { position: relative; height: 320px; }
+
+/* ── Region table ───────────────────────────────────────── */
+.region-gender-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.region-gender-table th,
+.region-gender-table td { padding: 8px 12px; border-bottom: 1px solid #eee; text-align: center; }
+.region-gender-table th  { background: #f5f5f5; font-weight: 600; }
+.region-gender-table td:first-child { text-align: left; font-weight: 500; }
+.badge-male   { background: #1a73e8; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+.badge-female { background: #e53935; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+.badge-total  { background: #555;    color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>Dashboard
+
+<!-- Print-only header (hidden on screen) -->
+<div class="print-header">
+    <h2>Ahmadiyya Muslim Jamaat The Gambia Data System</h2>
+    {% if selected_program or active_program %}
+    <p>Programme: {% if selected_program %}{{ selected_program.name }} ({{ selected_program.year }}){% else %}{{ active_program.name }} ({{ active_program.year }}){% endif %}</p>
+    {% else %}
+    <p>All Programmes — Combined Statistics</p>
+    {% endif %}
+    <p>Printed on: <span id="print-date"></span></p>
+</div>
+
+<h1 class="no-print">Dashboard
 {% if active_program %}
-<small style="font-size:0.5em;background:#bab148;color:#fff;padding:3px 10px;border-radius:4px;vertical-align:middle;">
+<small class="page-title-badge" style="font-size:0.5em;background:#bab148;color:#fff;padding:3px 10px;border-radius:4px;vertical-align:middle;">
     {{ active_program.name }} ({{ active_program.year }})
 </small>
 {% elif profile.is_admin_role or user.is_superuser %}
-<small style="font-size:0.5em;background:#333;color:#fff;padding:3px 10px;border-radius:4px;vertical-align:middle;">
+<small class="page-title-badge" style="font-size:0.5em;background:#333;color:#fff;padding:3px 10px;border-radius:4px;vertical-align:middle;">
     Admin – All Programs
 </small>
 {% endif %}
@@ -18,7 +75,7 @@
 
 <!-- Admin program picker -->
 {% if all_programs %}
-<form method="get" style="margin-bottom:24px;background:#fdf4e3;padding:16px 20px;border-radius:8px;border:2px solid #bab148;display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
+<form method="get" class="no-print" style="margin-bottom:24px;background:#fdf4e3;padding:16px 20px;border-radius:8px;border:2px solid #bab148;display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
     <label for="program" style="font-weight:bold;white-space:nowrap;">View Program:</label>
     <select id="program" name="program"
         style="padding:8px 14px;border:2px solid #000;border-radius:4px;font-size:15px;background:white;min-width:220px;">
@@ -41,48 +98,79 @@
 </form>
 {% endif %}
 
-<!-- Totals Card -->
+<!-- Totals Row -->
 <div class="stats-container">
     <div class="stat-card">
         <h3>Total Registrations</h3>
         <div class="stat-number">{{ total_registrations }}</div>
         <div class="stat-label">
-            {% if active_program %}{{ active_program.name }}{% else %}All Programs{% endif %}
+            {% if active_program %}{{ active_program.name }}{% elif selected_program %}{{ selected_program.name }}{% else %}All Programs{% endif %}
             {% if profile.gender_scope %}– {{ profile.gender_scope }} only{% endif %}
         </div>
     </div>
-
-    {% for stat in gender_stats %}
     <div class="stat-card">
-        <h3>{{ stat.gender }}</h3>
-        <div class="stat-number">{{ stat.count }}</div>
+        <h3>Male</h3>
+        <div class="stat-number" style="color:#1a73e8;">{{ total_male }}</div>
         <div class="stat-label">Registered</div>
     </div>
-    {% endfor %}
+    <div class="stat-card">
+        <h3>Female</h3>
+        <div class="stat-number" style="color:#e53935;">{{ total_female }}</div>
+        <div class="stat-label">Registered</div>
+    </div>
 </div>
 
-<!-- By Region -->
-<div class="stats-table-container">
-    <h2>By Region</h2>
-    {% if region_stats %}
-        <table class="stats-table">
+<!-- Region × Gender Chart + Table -->
+{% if region_breakdown %}
+<div class="chart-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        <h2 style="margin:0;">Registrations by Region</h2>
+        <button onclick="window.print()" class="btn btn-secondary no-print" style="display:flex;align-items:center;gap:6px;">
+            &#128424; Print Statistics
+        </button>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-wrapper no-print">
+        <canvas id="regionChart"></canvas>
+    </div>
+
+    <!-- Table (visible on screen and in print) -->
+    <div style="margin-top:24px;">
+        <table class="region-gender-table">
             <thead>
-                <tr><th>Region</th><th>Count</th><th>%</th></tr>
+                <tr>
+                    <th style="text-align:left;">Region</th>
+                    <th><span class="badge-male">Male</span></th>
+                    <th><span class="badge-female">Female</span></th>
+                    <th><span class="badge-total">Total</span></th>
+                    <th>%</th>
+                </tr>
             </thead>
             <tbody>
-                {% for stat in region_stats %}
+                {% for r in region_breakdown %}
                 <tr>
-                    <td>{{ stat.name }}</td>
-                    <td><strong>{{ stat.count }}</strong></td>
-                    <td>{% if total_registrations > 0 %}{% widthratio stat.count total_registrations 100 %}%{% else %}0%{% endif %}</td>
+                    <td>{{ r.name }}</td>
+                    <td>{{ r.male }}</td>
+                    <td>{{ r.female }}</td>
+                    <td><strong>{{ r.total }}</strong></td>
+                    <td>{% if total_registrations > 0 %}{% widthratio r.total total_registrations 100 %}%{% else %}0%{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>
+            <tfoot>
+                <tr style="border-top:2px solid #ccc;background:#f9f9f9;">
+                    <td><strong>Total</strong></td>
+                    <td><strong>{{ total_male }}</strong></td>
+                    <td><strong>{{ total_female }}</strong></td>
+                    <td><strong>{{ total_registrations }}</strong></td>
+                    <td>100%</td>
+                </tr>
+            </tfoot>
         </table>
-    {% else %}
-        <p>No data available.</p>
-    {% endif %}
+    </div>
 </div>
+{% endif %}
 
 <!-- By Auxiliary Body -->
 <div class="stats-table-container">
@@ -128,7 +216,7 @@
 </div>
 {% endif %}
 
-<div style="margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;">
+<div class="no-print" style="margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;">
     <a href="{% url 'tagnid:registration_list' %}" class="btn btn-primary">View All Registrations</a>
     {% if selected_program %}
     <a href="{% url 'tagnid:registration_list' %}?program={{ selected_program.id }}" class="btn btn-primary"
@@ -140,4 +228,71 @@
     <a href="{% url 'tagnid:registration_create' %}" class="btn btn-success">New Registration</a>
     {% endif %}
 </div>
+
+<!-- Chart.js -->
+{% if region_breakdown %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const labels  = [{% for r in region_breakdown %}"{{ r.name }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    const maleCounts    = [{% for r in region_breakdown %}{{ r.male }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const femaleCounts  = [{% for r in region_breakdown %}{{ r.female }}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+    new Chart(document.getElementById('regionChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Male',
+                    data: maleCounts,
+                    backgroundColor: 'rgba(26, 115, 232, 0.8)',
+                    borderColor: 'rgba(26, 115, 232, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                },
+                {
+                    label: 'Female',
+                    data: femaleCounts,
+                    backgroundColor: 'rgba(229, 57, 53, 0.8)',
+                    borderColor: 'rgba(229, 57, 53, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                },
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        footer: function(items) {
+                            const total = items.reduce((s, i) => s + i.parsed.y, 0);
+                            return 'Total: ' + total;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+
+    // Stamp today's date in the print header
+    document.getElementById('print-date').textContent = new Date().toLocaleDateString(undefined, {
+        year: 'numeric', month: 'long', day: 'numeric'
+    });
+})();
+</script>
+{% else %}
+<script>
+    const el = document.getElementById('print-date');
+    if (el) el.textContent = new Date().toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'});
+</script>
+{% endif %}
+
 {% endblock %}

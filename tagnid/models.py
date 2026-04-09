@@ -96,7 +96,7 @@ class RegistrationManager(models.Manager):
 
                 for i, registration in enumerate(year_registrations, start=1):
                     next_num = max_num + i
-                    registration.unique_code = f"{year}-{next_num:04d}"
+                    registration.unique_code = f"{year}{next_num:03d}"
                     registration.save(update_fields=['unique_code'])
                     count += 1
 
@@ -145,7 +145,7 @@ class Registration(models.Model):
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='Male')
     region = models.CharField(max_length=20, choices=REGION_CHOICES)
     auxiliary_body = models.CharField(max_length=20, choices=AUXILIARY_BODY_CHOICES, verbose_name='Auxiliary Body')
-    unique_code = models.CharField(max_length=20, unique=True, null=True, blank=True, verbose_name='Unique Registration Code')
+    unique_code = models.CharField(max_length=20, null=True, blank=True, verbose_name='Unique Registration Code')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -155,41 +155,50 @@ class Registration(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Registration'
         verbose_name_plural = 'Registrations'
+        # Code is unique within each programme; different programmes can share same code
+        constraints = [
+            models.UniqueConstraint(fields=['program', 'unique_code'], name='unique_code_per_program')
+        ]
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
     def generate_unique_code(self):
-        """Generate a unique code in format: YEAR-NNNN (e.g., 2025-0001)"""
+        """
+        Generate a unique code in format YEARSEQ (e.g. 2026001).
+        Sequence is scoped per programme so each programme starts at 001.
+        """
         if self.unique_code:
             return self.unique_code
 
         year = self.program.year if self.program else (
             self.created_at.year if self.created_at else date.today().year
         )
+        prefix = str(year)
 
-        last_reg = Registration.objects.filter(
-            unique_code__startswith=f"{year}-"
-        ).exclude(pk=self.pk if self.pk else None).order_by('-unique_code').first()
+        # Scope the sequence lookup to this programme only
+        qs = Registration.objects.filter(
+            program=self.program,
+            unique_code__startswith=prefix,
+        ).exclude(pk=self.pk if self.pk else None)
 
-        if last_reg and last_reg.unique_code:
+        max_num = 0
+        for code in qs.values_list('unique_code', flat=True):
             try:
-                last_num = int(last_reg.unique_code.split('-')[1])
-                next_num = last_num + 1
-            except (ValueError, IndexError):
-                year_count = Registration.objects.filter(
-                    created_at__year=year
-                ).exclude(pk=self.pk if self.pk else None).count()
-                next_num = year_count + 1
-        else:
-            next_num = 1
+                num = int(code[len(prefix):])
+                max_num = max(max_num, num)
+            except (ValueError, TypeError):
+                pass
 
-        proposed_code = f"{year}-{next_num:04d}"
-        while Registration.objects.filter(unique_code=proposed_code).exclude(
-            pk=self.pk if self.pk else None
-        ).exists():
+        next_num = max_num + 1
+        proposed_code = f"{prefix}{next_num:03d}"
+
+        # Guard against race conditions
+        while Registration.objects.filter(
+            program=self.program, unique_code=proposed_code
+        ).exclude(pk=self.pk if self.pk else None).exists():
             next_num += 1
-            proposed_code = f"{year}-{next_num:04d}"
+            proposed_code = f"{prefix}{next_num:03d}"
 
         self.unique_code = proposed_code
         return self.unique_code
