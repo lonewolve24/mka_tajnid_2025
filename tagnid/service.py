@@ -2,7 +2,7 @@ from .models import Registration, Vitals
 from django.db import transaction
 
 
-def create_registration(first_name, last_name, region, auxiliary_body, dob=None):
+def create_registration(first_name, last_name, region, auxiliary_body, dob=None, program=None, gender='Male'):
     """
     Service function to create a new registration
     
@@ -10,8 +10,10 @@ def create_registration(first_name, last_name, region, auxiliary_body, dob=None)
         first_name: First name of the person
         last_name: Last name of the person
         region: Region choice (URR, LRR, CRR, etc.)
-        auxiliary_body: Auxiliary Body choice (Atfal, Khuddam, Ansar, Guest)
+        auxiliary_body: Auxiliary Body choice
         dob: Date of birth (optional)
+        program: Program instance (optional)
+        gender: Gender choice (Male/Female)
     
     Returns:
         Registration object
@@ -21,7 +23,9 @@ def create_registration(first_name, last_name, region, auxiliary_body, dob=None)
         last_name=last_name,
         region=region,
         auxiliary_body=auxiliary_body,
-        dob=dob
+        dob=dob,
+        program=program,
+        gender=gender
     )
     return registration
 

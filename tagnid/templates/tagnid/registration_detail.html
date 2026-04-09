@@ -14,6 +14,16 @@
         <div class="detail-label">Unique Code:</div>
         <div class="detail-value"><strong>{{ registration.unique_code|default:"Not assigned" }}</strong></div>
     </div>
+    <div class="detail-row">
+        <div class="detail-label">Program:</div>
+        <div class="detail-value">
+            {% if registration.program %}
+                {{ registration.program.name }} ({{ registration.program.year }})
+            {% else %}
+                Not assigned
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 <div class="detail-section">
@@ -37,6 +47,10 @@
     <div class="detail-row">
         <div class="detail-label">Region:</div>
         <div class="detail-value">{{ registration.get_region_display }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Gender:</div>
+        <div class="detail-value">{{ registration.get_gender_display }}</div>
     </div>
     <div class="detail-row">
         <div class="detail-label">Auxiliary Body:</div>

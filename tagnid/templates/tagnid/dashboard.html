@@ -4,74 +4,100 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<h1>Dashboard</h1>
+<h1>Dashboard
+{% if active_program %}
+<small style="font-size:0.5em;background:#bab148;color:#fff;padding:3px 10px;border-radius:4px;vertical-align:middle;">
+    {{ active_program.name }} ({{ active_program.year }})
+</small>
+{% elif profile.is_admin_role or user.is_superuser %}
+<small style="font-size:0.5em;background:#333;color:#fff;padding:3px 10px;border-radius:4px;vertical-align:middle;">
+    Admin – All Programs
+</small>
+{% endif %}
+</h1>
 
-<!-- Total Registrations Card -->
+<!-- Admin program picker -->
+{% if all_programs %}
+<form method="get" style="margin-bottom:24px;background:#fdf4e3;padding:16px 20px;border-radius:8px;border:2px solid #bab148;display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
+    <label for="program" style="font-weight:bold;white-space:nowrap;">View Program:</label>
+    <select id="program" name="program"
+        style="padding:8px 14px;border:2px solid #000;border-radius:4px;font-size:15px;background:white;min-width:220px;">
+        <option value="">All Programs (combined)</option>
+        {% for p in all_programs %}
+            <option value="{{ p.id }}" {% if selected_program_id == p.id|stringformat:"s" %}selected{% endif %}>
+                {{ p.name }} ({{ p.year }})
+            </option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary">Apply</button>
+    {% if selected_program_id %}
+    <a href="{% url 'tagnid:dashboard' %}" class="btn btn-secondary">Clear</a>
+    {% endif %}
+    {% if selected_program %}
+    <span style="font-weight:bold;color:#bab148;">
+        Showing: {{ selected_program.name }} ({{ selected_program.year }})
+    </span>
+    {% endif %}
+</form>
+{% endif %}
+
+<!-- Totals Card -->
 <div class="stats-container">
     <div class="stat-card">
         <h3>Total Registrations</h3>
         <div class="stat-number">{{ total_registrations }}</div>
-        <div class="stat-label">Registered Members</div>
+        <div class="stat-label">
+            {% if active_program %}{{ active_program.name }}{% else %}All Programs{% endif %}
+            {% if profile.gender_scope %}– {{ profile.gender_scope }} only{% endif %}
+        </div>
     </div>
+
+    {% for stat in gender_stats %}
+    <div class="stat-card">
+        <h3>{{ stat.gender }}</h3>
+        <div class="stat-number">{{ stat.count }}</div>
+        <div class="stat-label">Registered</div>
+    </div>
+    {% endfor %}
 </div>
 
-<!-- Statistics by Region -->
+<!-- By Region -->
 <div class="stats-table-container">
-    <h2>Statistics by Region</h2>
+    <h2>By Region</h2>
     {% if region_stats %}
         <table class="stats-table">
             <thead>
-                <tr>
-                    <th>Region</th>
-                    <th>Count</th>
-                    <th>Percentage</th>
-                </tr>
+                <tr><th>Region</th><th>Count</th><th>%</th></tr>
             </thead>
             <tbody>
                 {% for stat in region_stats %}
                 <tr>
                     <td>{{ stat.name }}</td>
                     <td><strong>{{ stat.count }}</strong></td>
-                    <td>
-                        {% if total_registrations > 0 %}
-                            {% widthratio stat.count total_registrations 100 %}%
-                        {% else %}
-                            0%
-                        {% endif %}
-                    </td>
+                    <td>{% if total_registrations > 0 %}{% widthratio stat.count total_registrations 100 %}%{% else %}0%{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <p>No registration data available.</p>
+        <p>No data available.</p>
     {% endif %}
 </div>
 
-<!-- Statistics by Auxiliary Body -->
+<!-- By Auxiliary Body -->
 <div class="stats-table-container">
-    <h2>Statistics by Auxiliary Body</h2>
+    <h2>By Auxiliary Body</h2>
     {% if auxiliary_body_stats %}
         <table class="stats-table">
             <thead>
-                <tr>
-                    <th>Auxiliary Body</th>
-                    <th>Count</th>
-                    <th>Percentage</th>
-                </tr>
+                <tr><th>Auxiliary Body</th><th>Count</th><th>%</th></tr>
             </thead>
             <tbody>
                 {% for stat in auxiliary_body_stats %}
                 <tr>
                     <td>{{ stat.name }}</td>
                     <td><strong>{{ stat.count }}</strong></td>
-                    <td>
-                        {% if total_registrations > 0 %}
-                            {% widthratio stat.count total_registrations 100 %}%
-                        {% else %}
-                            0%
-                        {% endif %}
-                    </td>
+                    <td>{% if total_registrations > 0 %}{% widthratio stat.count total_registrations 100 %}%{% else %}0%{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -81,9 +107,37 @@
     {% endif %}
 </div>
 
-<div style="margin-top: 30px;">
+<!-- Program overview – admin only -->
+{% if program_stats %}
+<div class="stats-table-container">
+    <h2>All Programs Overview</h2>
+    <table class="stats-table">
+        <thead>
+            <tr><th>Program</th><th>Year</th><th>Registrations</th></tr>
+        </thead>
+        <tbody>
+            {% for program in program_stats %}
+            <tr>
+                <td>{{ program.name }}</td>
+                <td>{{ program.year }}</td>
+                <td><strong>{{ program.count }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div style="margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;">
     <a href="{% url 'tagnid:registration_list' %}" class="btn btn-primary">View All Registrations</a>
-    <a href="{% url 'tagnid:registration_create' %}" class="btn btn-success">Create New Registration</a>
+    {% if selected_program %}
+    <a href="{% url 'tagnid:registration_list' %}?program={{ selected_program.id }}" class="btn btn-primary"
+        style="background:#bab148;border-color:#bab148;">
+        &#128197; View Registrations for {{ selected_program.name }} ({{ selected_program.year }}) &rarr;
+    </a>
+    {% endif %}
+    {% if not profile.is_read_only %}
+    <a href="{% url 'tagnid:registration_create' %}" class="btn btn-success">New Registration</a>
+    {% endif %}
 </div>
 {% endblock %}
-

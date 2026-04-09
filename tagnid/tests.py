@@ -1,438 +1,508 @@
 from django.test import TestCase, Client
-from django.contrib.auth.models import User, Group, Permission
 from django.urls import reverse
-from .models import Registration, Vitals
+from django.contrib.auth.models import User
+from .models import Program, Registration, UserProfile, Vitals
 from datetime import date
 
 
-class RegistrationCRUDTests(TestCase):
-    """Test CRUD operations for Registration model"""
-    
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def make_program(name='Tajnid 2026', year=2026, is_active=True, is_archived=False):
+    return Program.objects.create(name=name, year=year, is_active=is_active, is_archived=is_archived)
+
+
+def make_user(username, password='pass1234', role='male_data_entry', program=None, is_superuser=False, is_staff=False):
+    user = User.objects.create_user(
+        username=username,
+        password=password,
+        is_superuser=is_superuser,
+        is_staff=is_staff,
+    )
+    UserProfile.objects.create(user=user, role=role, default_program=program)
+    return user
+
+
+def make_registration(program=None, gender='Male', auxiliary_body='Khuddam', region='URR',
+                      first_name='Test', last_name='User'):
+    return Registration.objects.create(
+        program=program,
+        first_name=first_name,
+        last_name=last_name,
+        gender=gender,
+        region=region,
+        auxiliary_body=auxiliary_body,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Session / login helpers
+# ---------------------------------------------------------------------------
+
+class BaseTestCase(TestCase):
+    """Base class that ensures session has active_program_id after login."""
+
+    def login_with_program(self, user, program=None):
+        """Log in and set active_program_id in session if program given."""
+        self.client.login(username=user.username, password='pass1234')
+        if program:
+            session = self.client.session
+            session['active_program_id'] = program.pk
+            session.save()
+
+
+# ---------------------------------------------------------------------------
+# 1. Login / session tests
+# ---------------------------------------------------------------------------
+
+class LoginSessionTests(BaseTestCase):
+
     def setUp(self):
-        """Set up test data"""
         self.client = Client()
-        
-        # Create a superuser
-        self.superuser = User.objects.create_user(
-            username='admin',
-            password='admin123',
-            is_staff=True,
-            is_superuser=True
-        )
-        
-        # Create a regular user
-        self.regular_user = User.objects.create_user(
-            username='regular',
-            password='regular123'
-        )
-        
-        # Create a user in the "register" group
-        self.register_user = User.objects.create_user(
-            username='register',
-            password='register123'
-        )
-        
-        # Create or get the "register" group
-        register_group, created = Group.objects.get_or_create(name='register')
-        
-        # Add permissions: add, view, change (but NOT delete)
-        add_permission = Permission.objects.get(codename='add_registration')
-        view_permission = Permission.objects.get(codename='view_registration')
-        change_permission = Permission.objects.get(codename='change_registration')
-        
-        register_group.permissions.add(add_permission, view_permission, change_permission)
-        self.register_user.groups.add(register_group)
-        
-        # Create a test registration
-        self.test_registration = Registration.objects.create(
-            first_name='John',
-            last_name='Doe',
-            region='URR',
-            auxiliary_body='Khuddam',
-            dob=date(1990, 1, 1)
-        )
-    
-    def test_create_registration_as_register_user(self):
-        """Test that register group user can create registration"""
-        self.client.login(username='register', password='register123')
-        
-        url = reverse('tagnid:registration_create')
-        response = self.client.post(url, {
-            'first_name': 'Jane',
-            'last_name': 'Smith',
+        self.program = make_program()
+        self.user = make_user('male_user', role='male_data_entry', program=self.program)
+
+    def test_login_redirects_to_dashboard(self):
+        url = reverse('tagnid:login')
+        resp = self.client.post(url, {'username': 'male_user', 'password': 'pass1234'})
+        self.assertRedirects(resp, reverse('tagnid:dashboard'))
+
+    def test_login_sets_active_program_in_session(self):
+        self.client.post(reverse('tagnid:login'), {'username': 'male_user', 'password': 'pass1234'})
+        self.assertEqual(self.client.session.get('active_program_id'), self.program.pk)
+
+    def test_login_wrong_password_stays_on_login(self):
+        resp = self.client.post(reverse('tagnid:login'), {'username': 'male_user', 'password': 'wrong'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Invalid username or password')
+
+    def test_logout_clears_session(self):
+        self.login_with_program(self.user, self.program)
+        self.client.get(reverse('tagnid:logout'))
+        self.assertNotIn('active_program_id', self.client.session)
+
+    def test_unauthenticated_user_redirected_to_login(self):
+        for name in ['dashboard', 'registration_list', 'registration_create']:
+            resp = self.client.get(reverse(f'tagnid:{name}'))
+            self.assertIn('/login/', resp.url, msg=f'Failed for {name}')
+
+
+# ---------------------------------------------------------------------------
+# 2. require_program gate tests
+# ---------------------------------------------------------------------------
+
+class RequireProgramTests(BaseTestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.program = make_program()
+        self.user_no_program = make_user('no_prog', role='male_data_entry', program=None)
+        self.user_with_program = make_user('has_prog', role='male_data_entry', program=self.program)
+
+    def test_user_without_program_redirected_to_no_program(self):
+        self.client.login(username='no_prog', password='pass1234')
+        resp = self.client.get(reverse('tagnid:dashboard'))
+        self.assertRedirects(resp, reverse('tagnid:no_program'))
+
+    def test_user_with_program_can_access_dashboard(self):
+        self.login_with_program(self.user_with_program, self.program)
+        resp = self.client.get(reverse('tagnid:dashboard'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_user_without_program_can_still_access_dashboard(self):
+        admin = make_user('adm', role='admin', program=None)
+        self.client.login(username='adm', password='pass1234')
+        resp = self.client.get(reverse('tagnid:dashboard'))
+        self.assertEqual(resp.status_code, 200)
+
+
+# ---------------------------------------------------------------------------
+# 3. Registration creation tests
+# ---------------------------------------------------------------------------
+
+class RegistrationCreateTests(BaseTestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.program = make_program()
+
+    def _post_registration(self, data):
+        return self.client.post(reverse('tagnid:registration_create'), data)
+
+    # -- Male data entry role --
+
+    def test_male_role_can_create_male_registration(self):
+        user = make_user('male_user', role='male_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self._post_registration({
+            'first_name': 'Ahmad',
+            'last_name': 'Bah',
+            'gender': 'Male',
+            'region': 'URR',
+            'auxiliary_body': 'Khuddam',
+        })
+        self.assertRedirects(resp, reverse('tagnid:registration_list'))
+        reg = Registration.objects.get(first_name='Ahmad', last_name='Bah')
+        self.assertEqual(reg.gender, 'Male')
+        self.assertEqual(reg.program, self.program)
+
+    def test_male_role_cannot_create_female_auxiliary_body(self):
+        user = make_user('male_user2', role='male_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self._post_registration({
+            'first_name': 'Ahmad',
+            'last_name': 'Bah',
+            'gender': 'Male',
+            'region': 'URR',
+            'auxiliary_body': 'Lajina',
+        })
+        # Form should be invalid – stay on page
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Registration.objects.filter(first_name='Ahmad', auxiliary_body='Lajina').exists())
+
+    # -- Female data entry role --
+
+    def test_female_role_can_create_female_registration(self):
+        user = make_user('female_user', role='female_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self._post_registration({
+            'first_name': 'Fatou',
+            'last_name': 'Jallow',
+            'gender': 'Female',
             'region': 'LRR',
-            'auxiliary_body': 'Atfal',
-            'dob': '2000-01-01'
+            'auxiliary_body': 'Lajina',
         })
-        
-        self.assertEqual(response.status_code, 302)  # Redirect after success
-        self.assertTrue(Registration.objects.filter(first_name='Jane', last_name='Smith').exists())
-    
-    def test_create_registration_as_regular_user(self):
-        """Test that regular user can create registration"""
-        self.client.login(username='regular', password='regular123')
-        
-        url = reverse('tagnid:registration_create')
-        response = self.client.post(url, {
-            'first_name': 'Bob',
-            'last_name': 'Johnson',
-            'region': 'CRR',
-            'auxiliary_body': 'Ansar',
-            'dob': '1985-05-15'
-        })
-        
-        self.assertEqual(response.status_code, 302)  # Redirect after success
-        self.assertTrue(Registration.objects.filter(first_name='Bob', last_name='Johnson').exists())
-    
-    def test_view_registration_list_as_register_user(self):
-        """Test that register group user can view registration list"""
-        self.client.login(username='register', password='register123')
-        
-        url = reverse('tagnid:registration_list')
-        response = self.client.get(url)
-        
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'John')
-        self.assertContains(response, 'Doe')
-    
-    def test_view_registration_detail_as_register_user(self):
-        """Test that register group user can view registration detail"""
-        self.client.login(username='register', password='register123')
-        
-        url = reverse('tagnid:registration_detail', args=[self.test_registration.pk])
-        response = self.client.get(url)
-        
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'John')
-        self.assertContains(response, 'Doe')
-    
-    def test_update_registration_as_register_user(self):
-        """Test that register group user can update registration"""
-        self.client.login(username='register', password='register123')
-        
-        url = reverse('tagnid:registration_update', args=[self.test_registration.pk])
-        response = self.client.post(url, {
-            'first_name': 'John',
-            'last_name': 'Updated',
+        self.assertRedirects(resp, reverse('tagnid:registration_list'))
+        reg = Registration.objects.get(first_name='Fatou', last_name='Jallow')
+        self.assertEqual(reg.gender, 'Female')
+        self.assertEqual(reg.program, self.program)
+
+    def test_female_role_cannot_create_male_auxiliary_body(self):
+        user = make_user('female_user2', role='female_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self._post_registration({
+            'first_name': 'Fatou',
+            'last_name': 'Jallow',
+            'gender': 'Female',
             'region': 'LRR',
             'auxiliary_body': 'Khuddam',
-            'dob': '1990-01-01'
         })
-        
-        self.assertEqual(response.status_code, 302)  # Redirect after success
-        self.test_registration.refresh_from_db()
-        self.assertEqual(self.test_registration.last_name, 'Updated')
-    
-    def test_delete_registration_as_register_user_denied(self):
-        """Test that register group user CANNOT delete registration"""
-        self.client.login(username='register', password='register123')
-        
-        url = reverse('tagnid:registration_delete', args=[self.test_registration.pk])
-        response = self.client.get(url)
-        
-        # Should redirect with error message
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('tagnid:registration_list'))
-        
-        # Try POST request
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('tagnid:registration_list'))
-        
-        # Registration should still exist
-        self.assertTrue(Registration.objects.filter(pk=self.test_registration.pk).exists())
-    
-    def test_delete_registration_as_regular_user_denied(self):
-        """Test that regular user CANNOT delete registration"""
-        self.client.login(username='regular', password='regular123')
-        
-        url = reverse('tagnid:registration_delete', args=[self.test_registration.pk])
-        response = self.client.get(url)
-        
-        # Should redirect with error message
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('tagnid:registration_list'))
-        
-        # Try POST request
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('tagnid:registration_list'))
-        
-        # Registration should still exist
-        self.assertTrue(Registration.objects.filter(pk=self.test_registration.pk).exists())
-    
-    def test_delete_registration_as_superuser_allowed(self):
-        """Test that superuser CAN delete registration"""
-        self.client.login(username='admin', password='admin123')
-        
-        registration_id = self.test_registration.pk
-        url = reverse('tagnid:registration_delete', args=[registration_id])
-        
-        # GET request should work
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        
-        # POST request should delete
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, 302)  # Redirect after success
-        
-        # Registration should be deleted
-        self.assertFalse(Registration.objects.filter(pk=registration_id).exists())
-    
-    def test_delete_registration_as_staff_allowed(self):
-        """Test that staff user CAN delete registration"""
-        staff_user = User.objects.create_user(
-            username='staff',
-            password='staff123',
-            is_staff=True
-        )
-        self.client.login(username='staff', password='staff123')
-        
-        registration = Registration.objects.create(
-            first_name='Test',
-            last_name='Staff',
-            region='URR',
-            auxiliary_body='Khuddam'
-        )
-        
-        url = reverse('tagnid:registration_delete', args=[registration.pk])
-        response = self.client.post(url)
-        
-        self.assertEqual(response.status_code, 302)  # Redirect after success
-        self.assertFalse(Registration.objects.filter(pk=registration.pk).exists())
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Registration.objects.filter(first_name='Fatou', auxiliary_body='Khuddam').exists())
+
+    # -- Nasirat (female auxiliary body) --
+
+    def test_nasirat_is_valid_for_female(self):
+        user = make_user('female_user3', role='female_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self._post_registration({
+            'first_name': 'Aminata',
+            'last_name': 'Ceesay',
+            'gender': 'Female',
+            'region': 'CRR',
+            'auxiliary_body': 'Nasirat',
+        })
+        self.assertRedirects(resp, reverse('tagnid:registration_list'))
+        self.assertTrue(Registration.objects.filter(first_name='Aminata', auxiliary_body='Nasirat').exists())
+
+    # -- Viewer role --
+
+    def test_viewer_cannot_create_registration(self):
+        user = make_user('viewer', role='viewer', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self._post_registration({
+            'first_name': 'Should',
+            'last_name': 'Fail',
+            'gender': 'Male',
+            'region': 'URR',
+            'auxiliary_body': 'Atfal',
+        })
+        self.assertRedirects(resp, reverse('tagnid:registration_list'))
+        self.assertFalse(Registration.objects.filter(first_name='Should').exists())
+
+    # -- Admin --
+
+    def test_admin_can_create_male_registration_with_program(self):
+        admin = make_user('adm_create', role='admin', program=None)
+        self.client.login(username='adm_create', password='pass1234')
+        resp = self._post_registration({
+            'program': self.program.pk,
+            'first_name': 'Admin',
+            'last_name': 'Created',
+            'gender': 'Male',
+            'region': 'URR',
+            'auxiliary_body': 'Ansar',
+        })
+        self.assertRedirects(resp, reverse('tagnid:registration_list'))
+        reg = Registration.objects.get(first_name='Admin', last_name='Created')
+        self.assertEqual(reg.program, self.program)
+
+    def test_admin_can_create_female_registration_with_program(self):
+        admin = make_user('adm_female', role='admin', program=None)
+        self.client.login(username='adm_female', password='pass1234')
+        resp = self._post_registration({
+            'program': self.program.pk,
+            'first_name': 'Admin',
+            'last_name': 'Female',
+            'gender': 'Female',
+            'region': 'LRR',
+            'auxiliary_body': 'Nasirat',
+        })
+        self.assertRedirects(resp, reverse('tagnid:registration_list'))
+        reg = Registration.objects.get(first_name='Admin', last_name='Female')
+        self.assertEqual(reg.gender, 'Female')
+        self.assertEqual(reg.program, self.program)
+
+    def test_admin_form_requires_program_selection(self):
+        admin = make_user('adm_noprog', role='admin', program=None)
+        self.client.login(username='adm_noprog', password='pass1234')
+        resp = self._post_registration({
+            # no program submitted
+            'first_name': 'No',
+            'last_name': 'Program',
+            'gender': 'Male',
+            'region': 'URR',
+            'auxiliary_body': 'Ansar',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Registration.objects.filter(first_name='No', last_name='Program').exists())
+
+    # -- Registration auto-assigns program --
+
+    def test_registration_auto_assigned_to_active_program(self):
+        user = make_user('prog_user', role='male_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        self._post_registration({
+            'first_name': 'Prog',
+            'last_name': 'Test',
+            'gender': 'Male',
+            'region': 'FONI',
+            'auxiliary_body': 'Atfal',
+        })
+        reg = Registration.objects.get(first_name='Prog', last_name='Test')
+        self.assertEqual(reg.program, self.program)
 
 
-class VitalsCRUDTests(TestCase):
-    """Test CRUD operations for Vitals model"""
+# ---------------------------------------------------------------------------
+# 4. Program scoping tests
+# ---------------------------------------------------------------------------
+
+class ProgramScopingTests(BaseTestCase):
 
     def setUp(self):
-        """Set up test data"""
         self.client = Client()
-        
-        # Create a superuser
-        self.superuser = User.objects.create_user(
-            username='admin',
-            password='admin123',
-            is_staff=True,
-            is_superuser=True
-        )
-        
-        # Create a user in the "register" group
-        self.register_user = User.objects.create_user(
-            username='register',
-            password='register123'
-        )
-        
-        # Create or get the "register" group
-        register_group, created = Group.objects.get_or_create(name='register')
-        
-        # Add permissions: add, view, change (but NOT delete)
-        add_permission = Permission.objects.get(codename='add_vitals')
-        view_permission = Permission.objects.get(codename='view_vitals')
-        change_permission = Permission.objects.get(codename='change_vitals')
-        
-        register_group.permissions.add(add_permission, view_permission, change_permission)
-        self.register_user.groups.add(register_group)
-        
-        # Create a test registration
-        self.test_registration = Registration.objects.create(
-            first_name='John',
-            last_name='Doe',
-            region='URR',
-            auxiliary_body='Khuddam',
-            dob=date(1990, 1, 1)
-        )
-        
-        # Create test vitals
-        self.test_vitals = Vitals.objects.create(
-            registration=self.test_registration,
-            blood_group='A+',
-            height=175.5
-        )
-    
-    def test_create_vitals_as_register_user(self):
-        """Test that register group user can create vitals"""
-        self.client.login(username='register', password='register123')
-        
-        registration = Registration.objects.create(
-            first_name='Jane',
-            last_name='Smith',
-            region='LRR',
-            auxiliary_body='Atfal'
-        )
-        
-        url = reverse('tagnid:vitals_create', args=[registration.pk])
-        response = self.client.post(url, {
-            'blood_group': 'B+',
-            'height': '180.0'
-        })
-        
-        self.assertEqual(response.status_code, 302)  # Redirect after success
-        self.assertTrue(Vitals.objects.filter(registration=registration).exists())
-    
-    def test_view_vitals_as_register_user(self):
-        """Test that register group user can view vitals"""
-        self.client.login(username='register', password='register123')
-        
-        url = reverse('tagnid:registration_detail', args=[self.test_registration.pk])
-        response = self.client.get(url)
-        
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'A+')
-    
-    def test_update_vitals_as_register_user(self):
-        """Test that register group user can update vitals"""
-        self.client.login(username='register', password='register123')
-        
-        url = reverse('tagnid:vitals_update', args=[self.test_registration.pk])
-        response = self.client.post(url, {
-            'blood_group': 'O+',
-            'height': '185.0'
-        })
-        
-        self.assertEqual(response.status_code, 302)  # Redirect after success
-        self.test_vitals.refresh_from_db()
-        self.assertEqual(self.test_vitals.blood_group, 'O+')
-        self.assertEqual(float(self.test_vitals.height), 185.0)
-    
-    def test_delete_vitals_as_register_user_denied(self):
-        """Test that register group user CANNOT delete vitals"""
-        self.client.login(username='register', password='register123')
-        
-        url = reverse('tagnid:vitals_delete', args=[self.test_registration.pk])
-        response = self.client.get(url)
-        
-        # Should redirect with error message
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('tagnid:registration_detail', args=[self.test_registration.pk]))
-        
-        # Try POST request
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('tagnid:registration_detail', args=[self.test_registration.pk]))
-        
-        # Vitals should still exist
-        self.assertTrue(Vitals.objects.filter(pk=self.test_vitals.pk).exists())
-    
-    def test_delete_vitals_as_superuser_allowed(self):
-        """Test that superuser CAN delete vitals"""
-        self.client.login(username='admin', password='admin123')
-        
-        vitals_id = self.test_vitals.pk
-        url = reverse('tagnid:vitals_delete', args=[self.test_registration.pk])
-        
-        # GET request should work
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        
-        # POST request should delete
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, 302)  # Redirect after success
-        
-        # Vitals should be deleted
-        self.assertFalse(Vitals.objects.filter(pk=vitals_id).exists())
+        self.prog_a = make_program('Program A', 2025)
+        self.prog_b = make_program('Program B', 2026)
+        self.user_a = make_user('user_a', role='male_data_entry', program=self.prog_a)
+        self.reg_a = make_registration(program=self.prog_a)
+        self.reg_b = make_registration(program=self.prog_b, first_name='Other', last_name='Person')
+
+    def test_user_only_sees_their_program_registrations(self):
+        self.login_with_program(self.user_a, self.prog_a)
+        resp = self.client.get(reverse('tagnid:registration_list'))
+        self.assertContains(resp, self.reg_a.first_name)
+        self.assertNotContains(resp, self.reg_b.first_name)
+
+    def test_user_cannot_view_other_program_registration_detail(self):
+        self.login_with_program(self.user_a, self.prog_a)
+        resp = self.client.get(reverse('tagnid:registration_detail', args=[self.reg_b.pk]))
+        self.assertRedirects(resp, reverse('tagnid:registration_list'))
+
+    def test_admin_sees_all_programs(self):
+        admin = make_user('admin_scope', role='admin', program=None)
+        self.client.login(username='admin_scope', password='pass1234')
+        resp = self.client.get(reverse('tagnid:registration_list'))
+        self.assertContains(resp, self.reg_a.first_name)
+        self.assertContains(resp, self.reg_b.first_name)
 
 
-class AuthenticationTests(TestCase):
-    """Test authentication and authorization"""
-    
+# ---------------------------------------------------------------------------
+# 5. Gender scoping tests
+# ---------------------------------------------------------------------------
+
+class GenderScopingTests(BaseTestCase):
+
     def setUp(self):
-        """Set up test data"""
         self.client = Client()
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='test123'
-        )
-    
-    def test_login_required_for_registration_list(self):
-        """Test that registration list requires login"""
-        url = reverse('tagnid:registration_list')
-        response = self.client.get(url)
-        
-        # Should redirect to login
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/login/', response.url)
-    
-    def test_login_required_for_dashboard(self):
-        """Test that dashboard requires login"""
-        url = reverse('tagnid:dashboard')
-        response = self.client.get(url)
-        
-        # Should redirect to login
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/login/', response.url)
-    
-    def test_login_success(self):
-        """Test successful login"""
-        url = reverse('tagnid:login')
-        response = self.client.post(url, {
-            'username': 'testuser',
-            'password': 'test123'
-        })
-        
-        self.assertEqual(response.status_code, 302)  # Redirect after login
-        self.assertIn('/dashboard/', response.url)
-    
-    def test_login_failure(self):
-        """Test failed login"""
-        url = reverse('tagnid:login')
-        response = self.client.post(url, {
-            'username': 'testuser',
-            'password': 'wrongpassword'
-        })
-        
-        self.assertEqual(response.status_code, 200)  # Stay on login page
-        self.assertContains(response, 'Invalid username or password')
+        self.program = make_program()
+        self.male_reg = make_registration(program=self.program, gender='Male', first_name='Lamin')
+        self.female_reg = make_registration(program=self.program, gender='Female',
+                                            auxiliary_body='Lajina', first_name='Fatou')
 
+    def test_male_role_sees_only_male_records(self):
+        user = make_user('male_scope', role='male_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self.client.get(reverse('tagnid:registration_list'))
+        self.assertContains(resp, 'Lamin')
+        self.assertNotContains(resp, 'Fatou')
+
+    def test_female_role_sees_only_female_records(self):
+        user = make_user('female_scope', role='female_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self.client.get(reverse('tagnid:registration_list'))
+        self.assertContains(resp, 'Fatou')
+        self.assertNotContains(resp, 'Lamin')
+
+    def test_program_manager_sees_both_genders(self):
+        user = make_user('pm', role='program_manager', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self.client.get(reverse('tagnid:registration_list'))
+        self.assertContains(resp, 'Lamin')
+        self.assertContains(resp, 'Fatou')
+
+
+# ---------------------------------------------------------------------------
+# 6. Unique code generation tests
+# ---------------------------------------------------------------------------
+
+class UniqueCodeTests(TestCase):
+
+    def test_unique_code_uses_program_year(self):
+        program = make_program(year=2026)
+        reg = make_registration(program=program)
+        self.assertTrue(reg.unique_code.startswith('2026-'))
+
+    def test_unique_codes_are_sequential(self):
+        program = make_program(year=2026)
+        reg1 = make_registration(program=program, first_name='A')
+        reg2 = make_registration(program=program, first_name='B')
+        num1 = int(reg1.unique_code.split('-')[1])
+        num2 = int(reg2.unique_code.split('-')[1])
+        self.assertEqual(num2, num1 + 1)
+
+    def test_unique_code_different_programs_same_year_sequential(self):
+        prog1 = make_program('P1', 2026)
+        prog2 = make_program('P2', 2026)
+        reg1 = make_registration(program=prog1)
+        reg2 = make_registration(program=prog2)
+        # Both 2026 but codes are still globally unique
+        self.assertNotEqual(reg1.unique_code, reg2.unique_code)
+
+
+# ---------------------------------------------------------------------------
+# 7. Settings – admin-only access tests
+# ---------------------------------------------------------------------------
+
+class SettingsAccessTests(BaseTestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.program = make_program()
+        self.admin = make_user('admin_s', role='admin', program=None)
+        self.regular = make_user('reg_s', role='male_data_entry', program=self.program)
+
+    def test_admin_can_access_settings_users(self):
+        self.client.login(username='admin_s', password='pass1234')
+        resp = self.client.get(reverse('tagnid:settings_users'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_non_admin_cannot_access_settings_users(self):
+        self.login_with_program(self.regular, self.program)
+        resp = self.client.get(reverse('tagnid:settings_users'))
+        self.assertRedirects(resp, reverse('tagnid:dashboard'))
+
+    def test_admin_can_access_settings_programs(self):
+        self.client.login(username='admin_s', password='pass1234')
+        resp = self.client.get(reverse('tagnid:settings_programs'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_can_create_user(self):
+        self.client.login(username='admin_s', password='pass1234')
+        resp = self.client.post(reverse('tagnid:settings_user_create'), {
+            'username': 'newuser',
+            'password': 'Str0ngPass!',
+            'confirm_password': 'Str0ngPass!',
+            'role': 'male_data_entry',
+            'default_program': '',
+        })
+        self.assertRedirects(resp, reverse('tagnid:settings_users'))
+        self.assertTrue(User.objects.filter(username='newuser').exists())
+
+    def test_admin_can_create_program(self):
+        self.client.login(username='admin_s', password='pass1234')
+        resp = self.client.post(reverse('tagnid:settings_program_create'), {
+            'name': 'New Program',
+            'year': 2027,
+            'is_active': True,
+            'is_archived': False,
+        })
+        self.assertRedirects(resp, reverse('tagnid:settings_programs'))
+        self.assertTrue(Program.objects.filter(name='New Program', year=2027).exists())
+
+
+# ---------------------------------------------------------------------------
+# 8. Archive tests
+# ---------------------------------------------------------------------------
+
+class ArchiveTests(BaseTestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.active_prog = make_program('Active', 2026, is_active=True, is_archived=False)
+        self.archived_prog = make_program('Archived', 2025, is_active=False, is_archived=True)
+        self.admin = make_user('arch_admin', role='admin', program=None)
+
+    def test_archived_program_not_shown_to_regular_users(self):
+        user = make_user('arch_user', role='male_data_entry', program=self.active_prog)
+        self.login_with_program(user, self.active_prog)
+        resp = self.client.get(reverse('tagnid:programs_overview'))
+        self.assertNotContains(resp, 'Archived')
+
+    def test_admin_can_see_archived_with_toggle(self):
+        self.client.login(username='arch_admin', password='pass1234')
+        resp = self.client.get(reverse('tagnid:programs_overview') + '?archived=1')
+        self.assertContains(resp, 'Archived')
+
+
+# ---------------------------------------------------------------------------
+# 9. Model tests
+# ---------------------------------------------------------------------------
 
 class ModelTests(TestCase):
-    """Test model functionality"""
-    
+
+    def test_program_str(self):
+        p = make_program('Tajnid', 2026)
+        self.assertEqual(str(p), 'Tajnid (2026)')
+
     def test_registration_str(self):
-        """Test Registration __str__ method"""
-        registration = Registration.objects.create(
-            first_name='John',
-            last_name='Doe',
-            region='URR',
-            auxiliary_body='Khuddam'
-        )
-        self.assertEqual(str(registration), 'John Doe')
-    
+        reg = make_registration(first_name='Lamin', last_name='Touray')
+        self.assertEqual(str(reg), 'Lamin Touray')
+
     def test_registration_age_calculation(self):
-        """Test age property calculation"""
-        from datetime import date, timedelta
-        
-        # Test with DOB
-        dob = date.today() - timedelta(days=365*25)  # 25 years ago
-        registration = Registration.objects.create(
-            first_name='John',
-            last_name='Doe',
-            region='URR',
-            auxiliary_body='Khuddam',
-            dob=dob
+        from datetime import timedelta
+        dob = date.today().replace(year=date.today().year - 25)
+        reg = Registration.objects.create(
+            first_name='A', last_name='B', region='URR',
+            gender='Male', auxiliary_body='Khuddam', dob=dob
         )
-        self.assertEqual(registration.age, 25)
-        
-        # Test without DOB
-        registration_no_dob = Registration.objects.create(
-            first_name='Jane',
-            last_name='Smith',
-            region='LRR',
-            auxiliary_body='Atfal'
-        )
-        self.assertIsNone(registration_no_dob.age)
-    
+        self.assertEqual(reg.age, 25)
+
+    def test_registration_age_none_without_dob(self):
+        reg = make_registration()
+        self.assertIsNone(reg.age)
+
+    def test_userprofile_gender_scope_male(self):
+        user = make_user('gsc_male', role='male_data_entry')
+        self.assertEqual(user.profile.gender_scope, 'Male')
+
+    def test_userprofile_gender_scope_female(self):
+        user = make_user('gsc_female', role='female_data_entry')
+        self.assertEqual(user.profile.gender_scope, 'Female')
+
+    def test_userprofile_gender_scope_none_for_admin(self):
+        user = make_user('gsc_admin', role='admin')
+        self.assertIsNone(user.profile.gender_scope)
+
+    def test_userprofile_is_read_only_for_viewer(self):
+        user = make_user('viewer_ro', role='viewer')
+        self.assertTrue(user.profile.is_read_only)
+
+    def test_userprofile_not_read_only_for_data_entry(self):
+        user = make_user('entry_rw', role='male_data_entry')
+        self.assertFalse(user.profile.is_read_only)
+
     def test_vitals_str(self):
-        """Test Vitals __str__ method"""
-        registration = Registration.objects.create(
-            first_name='John',
-            last_name='Doe',
-            region='URR',
-            auxiliary_body='Khuddam'
-        )
-        vitals = Vitals.objects.create(
-            registration=registration,
-            blood_group='A+',
-            height=175.5
-        )
-        self.assertEqual(str(vitals), 'Vitals for John Doe')
+        reg = make_registration(first_name='Omar', last_name='Jobe')
+        vitals = Vitals.objects.create(registration=reg, blood_group='O+', height=175)
+        self.assertEqual(str(vitals), 'Vitals for Omar Jobe')
