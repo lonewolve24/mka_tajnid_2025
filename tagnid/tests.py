@@ -206,6 +206,45 @@ class RegistrationCreateTests(BaseTestCase):
         self.assertRedirects(resp, reverse('tagnid:registration_list'))
         self.assertTrue(Registration.objects.filter(first_name='Aminata', auxiliary_body='Nasirat').exists())
 
+    def test_female_role_can_create_guest_registration(self):
+        user = make_user('female_guest', role='female_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self._post_registration({
+            'first_name': 'GuestFem',
+            'last_name': 'Test',
+            'gender': 'Female',
+            'region': 'CRR',
+            'auxiliary_body': 'Guest',
+        })
+        self.assertRedirects(resp, reverse('tagnid:registration_list'))
+        self.assertTrue(Registration.objects.filter(first_name='GuestFem', auxiliary_body='Guest').exists())
+
+    def test_male_role_can_create_foreign_delegate_registration(self):
+        user = make_user('male_fd', role='male_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self._post_registration({
+            'first_name': 'DelMale',
+            'last_name': 'Test',
+            'gender': 'Male',
+            'region': 'URR',
+            'auxiliary_body': 'Foreign_Delegate',
+        })
+        self.assertRedirects(resp, reverse('tagnid:registration_list'))
+        self.assertTrue(Registration.objects.filter(first_name='DelMale', auxiliary_body='Foreign_Delegate').exists())
+
+    def test_female_role_can_create_foreign_delegate_registration(self):
+        user = make_user('female_fd', role='female_data_entry', program=self.program)
+        self.login_with_program(user, self.program)
+        resp = self._post_registration({
+            'first_name': 'DelFem',
+            'last_name': 'Test',
+            'gender': 'Female',
+            'region': 'LRR',
+            'auxiliary_body': 'Foreign_Delegate',
+        })
+        self.assertRedirects(resp, reverse('tagnid:registration_list'))
+        self.assertTrue(Registration.objects.filter(first_name='DelFem', auxiliary_body='Foreign_Delegate').exists())
+
     # -- Viewer role --
 
     def test_viewer_cannot_create_registration(self):

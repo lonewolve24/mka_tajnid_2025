@@ -118,12 +118,12 @@ class RegistrationForm(forms.ModelForm):
             cleaned_data['gender'] = gender
 
         if gender and auxiliary_body:
-            if gender == 'Male' and auxiliary_body in Registration.FEMALE_AUXILIARY_BODIES:
+            if gender == 'Male' and auxiliary_body in Registration.FEMALE_ONLY_AUXILIARY_BODIES:
                 self.add_error(
                     'auxiliary_body',
                     f'"{auxiliary_body}" is a female auxiliary body and cannot be selected for a Male registration.'
                 )
-            elif gender == 'Female' and auxiliary_body in Registration.MALE_AUXILIARY_BODIES:
+            elif gender == 'Female' and auxiliary_body in Registration.MALE_ONLY_AUXILIARY_BODIES:
                 self.add_error(
                     'auxiliary_body',
                     f'"{auxiliary_body}" is a male auxiliary body and cannot be selected for a Female registration.'

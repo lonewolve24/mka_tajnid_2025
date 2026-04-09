@@ -125,12 +125,18 @@ class Registration(models.Model):
         ('Khuddam', 'Khuddam'),
         ('Ansar', 'Ansar'),
         ('Guest', 'Guest'),
+        ('Foreign_Delegate', 'Foreign Delegate'),
         ('Lajina', 'Lajina'),
         ('Nasirat', 'Nasirat'),
     ]
 
-    MALE_AUXILIARY_BODIES = {'Atfal', 'Khuddam', 'Ansar', 'Guest'}
-    FEMALE_AUXILIARY_BODIES = {'Lajina', 'Nasirat'}
+    # Male-only / female-only (Guest + Foreign Delegate allowed for both)
+    MALE_ONLY_AUXILIARY_BODIES = {'Atfal', 'Khuddam', 'Ansar'}
+    FEMALE_ONLY_AUXILIARY_BODIES = {'Lajina', 'Nasirat'}
+    SHARED_AUXILIARY_BODIES = {'Guest', 'Foreign_Delegate'}
+
+    MALE_AUXILIARY_BODIES = MALE_ONLY_AUXILIARY_BODIES | SHARED_AUXILIARY_BODIES
+    FEMALE_AUXILIARY_BODIES = FEMALE_ONLY_AUXILIARY_BODIES | SHARED_AUXILIARY_BODIES
 
     program = models.ForeignKey(
         Program,
