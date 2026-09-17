@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Majilis Khuddamul Ahmadiyya The Gambia National Ijteam Registeration 2025{% endblock %}</title>
+    <title>{% block title %}Ahmadiyya Muslim Jamaat The Gambia Data System{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
@@ -12,13 +12,34 @@
         {% if user.is_authenticated %}
         <nav class="navbar">
             <a href="{% url 'tagnid:dashboard' %}" class="navbar-brand">
-                <img src="{% static 'images/logo.png' %}" alt="MKA Logo" class="navbar-logo">
-                <span class="navbar-brand-text">MKA The Gambia National Ijtema Registeration 2025</span>
+                <img src="{% static 'images/logo.png' %}" alt="AMJ Logo" class="navbar-logo">
+                <span class="navbar-brand-text">Ahmadiyya Muslim Jamaat The Gambia Data System</span>
             </a>
             <ul class="navbar-nav">
                 <li><a href="{% url 'tagnid:dashboard' %}">Dashboard</a></li>
+                <li><a href="{% url 'tagnid:programs_overview' %}">Programs</a></li>
                 <li><a href="{% url 'tagnid:registration_list' %}">Registrations</a></li>
+                {% if not profile.is_read_only %}
                 <li><a href="{% url 'tagnid:registration_create' %}">New Registration</a></li>
+                {% endif %}
+                {% if profile.is_admin_role or user.is_superuser %}
+                <li>
+                    <a href="{% url 'tagnid:settings_users' %}" style="background:#333;color:#fff;padding:5px 12px;border-radius:4px;font-weight:bold;">
+                        &#9881; Settings
+                    </a>
+                </li>
+                {% endif %}
+                <li>
+                    {% if active_program %}
+                        <span style="background:#bab148;color:#fff;padding:5px 12px;border-radius:4px;font-weight:bold;font-size:13px;">
+                            &#128197; {{ active_program.name }} ({{ active_program.year }})
+                        </span>
+                    {% elif user.is_superuser or profile.is_admin_role %}
+                        <span style="background:#333;color:#fff;padding:5px 12px;border-radius:4px;font-weight:bold;font-size:13px;">
+                            &#9733; Admin
+                        </span>
+                    {% endif %}
+                </li>
                 <li><a href="{% url 'tagnid:logout' %}">Logout ({{ user.username }})</a></li>
             </ul>
         </nav>
@@ -26,36 +47,25 @@
         {% if messages %}
             <div class="messages">
                 {% for message in messages %}
-                    <div class="message {{ message.tags }}">
-                        {{ message }}
-                    </div>
+                    <div class="message {{ message.tags }}">{{ message }}</div>
                 {% endfor %}
             </div>
         {% endif %}
-        
-        {% block content %}
-        {% endblock %}
+
+        {% block content %}{% endblock %}
     </div>
-    
+
     <script>
-        // Auto-hide messages after 7 seconds
         document.addEventListener('DOMContentLoaded', function() {
-            const messages = document.querySelectorAll('.message');
-            messages.forEach(function(message) {
-                // Show message with fade-in
-                message.style.opacity = '0';
-                message.style.transition = 'opacity 0.3s ease-in-out';
+            const msgs = document.querySelectorAll('.message');
+            msgs.forEach(function(msg) {
+                msg.style.opacity = '0';
+                msg.style.transition = 'opacity 0.3s ease-in-out';
+                setTimeout(function() { msg.style.opacity = '1'; }, 100);
                 setTimeout(function() {
-                    message.style.opacity = '1';
-                }, 100);
-                
-                // Hide message after 7 seconds with fade-out
-                setTimeout(function() {
-                    message.style.opacity = '0';
-                    setTimeout(function() {
-                        message.style.display = 'none';
-                    }, 300); // Wait for fade-out animation
-                }, 7000); // 7 seconds
+                    msg.style.opacity = '0';
+                    setTimeout(function() { msg.style.display = 'none'; }, 300);
+                }, 7000);
             });
         });
     </script>

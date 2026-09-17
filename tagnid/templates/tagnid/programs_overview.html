@@ -1,0 +1,60 @@
+{% extends 'tagnid/base.html' %}
+
+{% block title %}Programs – Ahmadiyya Muslim Jamaat The Gambia Data System{% endblock %}
+
+{% block content %}
+<h1>Programs</h1>
+
+{% if profile.is_admin_role or user.is_superuser %}
+<div style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <a href="{% url 'tagnid:settings_program_create' %}" class="btn btn-success">+ New Program</a>
+    {% if show_archived %}
+        <a href="{% url 'tagnid:programs_overview' %}" class="btn btn-secondary">Hide Archived</a>
+    {% else %}
+        <a href="?archived=1" class="btn btn-secondary">Show Archived</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if programs %}
+<table>
+    <thead>
+        <tr>
+            <th>Program</th>
+            <th>Year</th>
+            <th>Registrations</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for program in programs %}
+        <tr {% if program.is_archived %}style="opacity:0.55;"{% endif %}>
+            <td><strong>{{ program.name }}</strong></td>
+            <td>{{ program.year }}</td>
+            <td>{{ program.count }}</td>
+            <td>
+                {% if program.is_archived %}
+                    <span style="background:#888;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">Archived</span>
+                {% elif program.is_active %}
+                    <span style="background:#2e7d32;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">Active</span>
+                {% else %}
+                    <span style="background:#c62828;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">Inactive</span>
+                {% endif %}
+            </td>
+            <td style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="{% url 'tagnid:registration_list' %}?program={{ program.id }}"
+                    class="btn btn-secondary">View Registrations</a>
+                {% if profile.is_admin_role or user.is_superuser %}
+                <a href="{% url 'tagnid:settings_program_edit' program.id %}"
+                    class="btn btn-primary">Edit</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No programs found. {% if profile.is_admin_role or user.is_superuser %}<a href="{% url 'tagnid:settings_program_create' %}">Create one now</a>.{% endif %}</p>
+{% endif %}
+{% endblock %}

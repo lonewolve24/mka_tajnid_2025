@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os
+import dj_database_url
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -76,8 +77,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-if DEBUG:
-    # Development database - SQLite
+if os.environ.get('DATABASE_URL'):
+    # Production: Railway provides DATABASE_URL automatically when a Postgres
+    # service is linked.  Use the internal URL (faster, stays within Railway).
+    DATABASES = {
+        'default': dj_database_url.config(
+            env='DATABASE_URL',
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+elif DEBUG:
+    # Local development – SQLite (no extra setup needed)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -85,8 +96,7 @@ if DEBUG:
         }
     }
 else:
-    # Production database - PostgreSQL (Railway automatically provides these)
-    # Railway uses: PGDATABASE, PGUSER, PGPASSWORD, PGHOST, PGPORT
+    # Fallback: individual PG* vars (older Railway projects)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',

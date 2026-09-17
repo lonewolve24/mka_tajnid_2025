@@ -1,0 +1,68 @@
+{% extends 'tagnid/base.html' %}
+
+{% block title %}Settings – Programs{% endblock %}
+
+{% block content %}
+<h1>&#9881; Settings</h1>
+
+<!-- Settings sub-nav -->
+<div style="display:flex;gap:10px;margin-bottom:24px;border-bottom:2px solid #bab148;padding-bottom:10px;">
+    <a href="{% url 'tagnid:settings_users' %}"
+        style="padding:8px 18px;border-radius:4px 4px 0 0;font-weight:bold;background:#fdf4e3;color:#333;text-decoration:none;border:2px solid #bab148;border-bottom:none;">
+        Users
+    </a>
+    <a href="{% url 'tagnid:settings_programs' %}"
+        style="padding:8px 18px;border-radius:4px 4px 0 0;font-weight:bold;background:#bab148;color:#fff;text-decoration:none;">
+        Programs
+    </a>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <h2 style="margin:0;">Programs</h2>
+    <a href="{% url 'tagnid:settings_program_create' %}" class="btn btn-success">+ New Program</a>
+</div>
+
+{% if programs %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Year</th>
+            <th>Registrations</th>
+            <th>Active</th>
+            <th>Archived</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for program in programs %}
+        <tr {% if program.is_archived %}style="opacity:0.55;"{% endif %}>
+            <td><strong>{{ program.name }}</strong></td>
+            <td>{{ program.year }}</td>
+            <td>{{ program.count }}</td>
+            <td>
+                {% if program.is_active %}
+                <span style="background:#2e7d32;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">Yes</span>
+                {% else %}
+                <span style="background:#888;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">No</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if program.is_archived %}
+                <span style="background:#c62828;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">Archived</span>
+                {% else %}
+                <span style="color:#888;">—</span>
+                {% endif %}
+            </td>
+            <td style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="{% url 'tagnid:registration_list' %}?program={{ program.id }}" class="btn btn-secondary">View Data</a>
+                <a href="{% url 'tagnid:settings_program_edit' program.id %}" class="btn btn-primary">Edit</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No programs yet. <a href="{% url 'tagnid:settings_program_create' %}">Create one now</a>.</p>
+{% endif %}
+{% endblock %}

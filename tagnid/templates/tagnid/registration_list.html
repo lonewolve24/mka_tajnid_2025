@@ -3,74 +3,100 @@
 {% block title %}Registration List{% endblock %}
 
 {% block content %}
-<h1>Registration List</h1>
+<h1>Registration List
+{% if active_program %}
+<small style="font-size:0.55em;background:#bab148;color:#fff;padding:3px 10px;border-radius:4px;vertical-align:middle;">
+    {{ active_program.name }} ({{ active_program.year }})
+</small>
+{% endif %}
+</h1>
 
 <!-- Search and Filter Form -->
-<form method="get" action="{% url 'tagnid:registration_list' %}" style="margin-bottom: 20px; background: #fdf4e3; padding: 20px; border-radius: 8px; border: 2px solid #000;">
-    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: end;" class="filter-grid">
-        <!-- Search Bar -->
+<form method="get" action="{% url 'tagnid:registration_list' %}" style="margin-bottom:20px;background:#fdf4e3;padding:20px;border-radius:8px;border:2px solid #000;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:15px;align-items:end;" class="filter-grid">
+
+        <!-- Search -->
         <div>
-            <label for="search" style="display: block; margin-bottom: 5px; font-weight: bold;">Search (Name or Unique Code):</label>
-            <input 
-                type="text" 
-                id="search" 
-                name="search" 
-                value="{{ search_query }}" 
-                placeholder="Search by name or unique code..."
-                style="width: 100%; padding: 10px; border: 2px solid #000; border-radius: 4px; font-size: 16px;"
-            >
+            <label for="search" style="display:block;margin-bottom:5px;font-weight:bold;">Search:</label>
+            <input type="text" id="search" name="search" value="{{ search_query }}"
+                placeholder="Name or unique code..."
+                style="width:100%;padding:10px;border:2px solid #000;border-radius:4px;font-size:16px;">
         </div>
-        
-        <!-- Region Filter -->
+
+        <!-- Region -->
         <div>
-            <label for="region" style="display: block; margin-bottom: 5px; font-weight: bold;">Filter by Region:</label>
-            <select 
-                id="region" 
-                name="region" 
-                style="width: 100%; padding: 10px; border: 2px solid #000; border-radius: 4px; font-size: 16px; background: white;"
-            >
+            <label for="region" style="display:block;margin-bottom:5px;font-weight:bold;">Region:</label>
+            <select id="region" name="region"
+                style="width:100%;padding:10px;border:2px solid #000;border-radius:4px;font-size:16px;background:white;">
                 <option value="">All Regions</option>
                 {% for value, label in region_choices %}
                     <option value="{{ value }}" {% if region_filter == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
         </div>
-        
-        <!-- Auxiliary Body Filter -->
+
+        <!-- Auxiliary Body -->
         <div>
-            <label for="auxiliary_body" style="display: block; margin-bottom: 5px; font-weight: bold;">Filter by Auxiliary Body:</label>
-            <select 
-                id="auxiliary_body" 
-                name="auxiliary_body" 
-                style="width: 100%; padding: 10px; border: 2px solid #000; border-radius: 4px; font-size: 16px; background: white;"
-            >
-                <option value="">All Auxiliary Bodies</option>
+            <label for="auxiliary_body" style="display:block;margin-bottom:5px;font-weight:bold;">Auxiliary Body:</label>
+            <select id="auxiliary_body" name="auxiliary_body"
+                style="width:100%;padding:10px;border:2px solid #000;border-radius:4px;font-size:16px;background:white;">
+                <option value="">All</option>
                 {% for value, label in auxiliary_body_choices %}
                     <option value="{{ value }}" {% if auxiliary_body_filter == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
         </div>
-        
+
+        <!-- Gender – only shown when role allows it -->
+        {% if gender_choices and not profile.gender_scope %}
+        <div>
+            <label for="gender" style="display:block;margin-bottom:5px;font-weight:bold;">Gender:</label>
+            <select id="gender" name="gender"
+                style="width:100%;padding:10px;border:2px solid #000;border-radius:4px;font-size:16px;background:white;">
+                <option value="">All Genders</option>
+                {% for value, label in gender_choices %}
+                    <option value="{{ value }}" {% if gender_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <!-- Program – only shown for admin (no active_program) -->
+        {% if program_choices %}
+        <div>
+            <label for="program" style="display:block;margin-bottom:5px;font-weight:bold;">Program:</label>
+            <select id="program" name="program"
+                style="width:100%;padding:10px;border:2px solid #000;border-radius:4px;font-size:16px;background:white;">
+                <option value="">All Programs</option>
+                {% for program in program_choices %}
+                    <option value="{{ program.id }}" {% if program_filter == program.id|stringformat:"s" %}selected{% endif %}>
+                        {{ program.name }} ({{ program.year }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
         <!-- Buttons -->
-        <div style="display: flex; gap: 10px; flex-direction: column;">
-            <button type="submit" class="btn btn-primary" style="white-space: nowrap;">Apply Filters</button>
-            <a href="{% url 'tagnid:registration_list' %}" class="btn btn-secondary" style="white-space: nowrap; text-align: center;">Clear</a>
+        <div style="display:flex;gap:10px;flex-direction:column;">
+            <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Apply Filters</button>
+            <a href="{% url 'tagnid:registration_list' %}" class="btn btn-secondary" style="white-space:nowrap;text-align:center;">Clear</a>
         </div>
     </div>
 </form>
 
 <!-- Action Buttons -->
-<div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-    <a href="{% url 'tagnid:registration_create' %}" class="btn btn-primary">Create New Registration</a>
-    <div style="display: flex; gap: 10px;">
-        <a href="{% url 'tagnid:export_registrations_pdf_preview' %}?{{ request.GET.urlencode }}" class="btn btn-secondary" target="_blank">Preview PDF</a>
-        <a href="{% url 'tagnid:export_registrations_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">Download PDF</a>
-        <a href="{% url 'tagnid:export_registrations' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">Download CSV</a>
-    </div>
+<div style="margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;">
+    {% if not profile.is_read_only %}
+    <a href="{% url 'tagnid:registration_create' %}" class="btn btn-primary">New Registration</a>
+    {% endif %}
+    <a href="{% url 'tagnid:export_registrations_pdf_preview' %}?{{ request.GET.urlencode }}" class="btn btn-secondary" target="_blank">Preview PDF</a>
+    <a href="{% url 'tagnid:export_registrations_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">Download PDF</a>
+    <a href="{% url 'tagnid:export_registrations' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">Download CSV</a>
 </div>
 
 {% if registrations %}
-    <p style="margin-bottom: 10px; font-weight: bold;">
+    <p style="margin-bottom:10px;font-weight:bold;">
         Showing {{ registrations.start_index }} to {{ registrations.end_index }} of {{ registrations.paginator.count }} registration(s)
     </p>
     <table>
@@ -79,6 +105,8 @@
                 <th>Unique Code</th>
                 <th>First Name</th>
                 <th>Last Name</th>
+                {% if not active_program %}<th>Program</th>{% endif %}
+                <th>Gender</th>
                 <th>Region</th>
                 <th>Auxiliary Body</th>
                 <th>Date of Birth</th>
@@ -92,46 +120,56 @@
                 <td>{{ registration.unique_code|default:"N/A" }}</td>
                 <td>{{ registration.first_name }}</td>
                 <td>{{ registration.last_name }}</td>
+                {% if not active_program %}
+                <td>{% if registration.program %}{{ registration.program.name }} ({{ registration.program.year }}){% else %}N/A{% endif %}</td>
+                {% endif %}
+                <td>{{ registration.get_gender_display }}</td>
                 <td>{{ registration.get_region_display }}</td>
                 <td>{{ registration.get_auxiliary_body_display }}</td>
                 <td>{{ registration.dob|default:"Not provided" }}</td>
                 <td>{{ registration.age|default:"N/A" }}</td>
                 <td>
                     <a href="{% url 'tagnid:registration_detail' registration.pk %}" class="btn btn-secondary">View</a>
+                    {% if not profile.is_read_only %}
                     <a href="{% url 'tagnid:registration_update' registration.pk %}" class="btn btn-primary">Edit</a>
+                    {% endif %}
+                    {% if user.is_staff or user.is_superuser %}
                     <a href="{% url 'tagnid:registration_delete' registration.pk %}" class="btn btn-danger">Delete</a>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    
-    <!-- Pagination Controls -->
+
     {% if registrations.has_other_pages %}
-    <div class="pagination" style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;">
+    <div class="pagination" style="margin-top:20px;display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;">
         {% if registrations.has_previous %}
             <a href="?{% if query_string %}{{ query_string }}&{% endif %}page=1" class="btn btn-secondary">First</a>
             <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ registrations.previous_page_number }}" class="btn btn-secondary">Previous</a>
         {% else %}
-            <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">First</span>
-            <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">Previous</span>
+            <span class="btn btn-secondary" style="opacity:0.5;cursor:not-allowed;pointer-events:none;">First</span>
+            <span class="btn btn-secondary" style="opacity:0.5;cursor:not-allowed;pointer-events:none;">Previous</span>
         {% endif %}
-        
-        <span style="padding: 10px 15px; font-weight: bold; background: #fdf4e3; border: 2px solid #000; border-radius: 4px;">
+
+        <span style="padding:10px 15px;font-weight:bold;background:#fdf4e3;border:2px solid #000;border-radius:4px;">
             Page {{ registrations.number }} of {{ registrations.paginator.num_pages }}
         </span>
-        
+
         {% if registrations.has_next %}
             <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ registrations.next_page_number }}" class="btn btn-secondary">Next</a>
             <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ registrations.paginator.num_pages }}" class="btn btn-secondary">Last</a>
         {% else %}
-            <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">Next</span>
-            <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">Last</span>
+            <span class="btn btn-secondary" style="opacity:0.5;cursor:not-allowed;pointer-events:none;">Next</span>
+            <span class="btn btn-secondary" style="opacity:0.5;cursor:not-allowed;pointer-events:none;">Last</span>
         {% endif %}
     </div>
     {% endif %}
 {% else %}
-    <p>No registrations found. <a href="{% url 'tagnid:registration_create' %}">Create one now</a>.</p>
+    <p>No registrations found.
+        {% if not profile.is_read_only %}
+        <a href="{% url 'tagnid:registration_create' %}">Create one now</a>.
+        {% endif %}
+    </p>
 {% endif %}
 {% endblock %}
-

@@ -1,0 +1,71 @@
+{% extends 'tagnid/base.html' %}
+
+{% block title %}Settings – Users{% endblock %}
+
+{% block content %}
+<h1>&#9881; Settings</h1>
+
+<!-- Settings sub-nav -->
+<div style="display:flex;gap:10px;margin-bottom:24px;border-bottom:2px solid #bab148;padding-bottom:10px;">
+    <a href="{% url 'tagnid:settings_users' %}"
+        style="padding:8px 18px;border-radius:4px 4px 0 0;font-weight:bold;background:#bab148;color:#fff;text-decoration:none;">
+        Users
+    </a>
+    <a href="{% url 'tagnid:settings_programs' %}"
+        style="padding:8px 18px;border-radius:4px 4px 0 0;font-weight:bold;background:#fdf4e3;color:#333;text-decoration:none;border:2px solid #bab148;border-bottom:none;">
+        Programs
+    </a>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <h2 style="margin:0;">Users ({{ users.count }})</h2>
+    <a href="{% url 'tagnid:settings_user_create' %}" class="btn btn-success">+ Create User</a>
+</div>
+
+{% if users %}
+<table>
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Assigned Program</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in users %}
+        <tr {% if not u.is_active %}style="opacity:0.5;"{% endif %}>
+            <td><strong>{{ u.username }}</strong>{% if u.is_superuser %} <span style="font-size:11px;background:#333;color:#fff;padding:1px 6px;border-radius:3px;">superuser</span>{% endif %}</td>
+            <td>
+                {% if u.profile %}
+                    {{ u.profile.get_role_display }}
+                {% else %}
+                    <em>No profile</em>
+                {% endif %}
+            </td>
+            <td>
+                {% if u.profile and u.profile.default_program %}
+                    {{ u.profile.default_program.name }} ({{ u.profile.default_program.year }})
+                {% else %}
+                    <span style="color:#888;">—</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if u.is_active %}
+                    <span style="background:#2e7d32;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">Active</span>
+                {% else %}
+                    <span style="background:#c62828;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">Inactive</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{% url 'tagnid:settings_user_edit' u.id %}" class="btn btn-primary">Edit</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No users found.</p>
+{% endif %}
+{% endblock %}

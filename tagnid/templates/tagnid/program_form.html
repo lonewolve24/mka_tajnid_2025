@@ -1,0 +1,41 @@
+{% extends 'tagnid/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<a href="{% url 'tagnid:settings_programs' %}" class="btn btn-secondary">Back to Programs</a>
+
+<div class="form-container" style="margin-top:20px;">
+<form method="post">
+    {% csrf_token %}
+
+    {% for field in form %}
+    <div class="form-group">
+        {% if field.field.widget.input_type == 'checkbox' %}
+            <div style="display:flex;align-items:center;gap:10px;">
+                {{ field }}
+                <label for="{{ field.id_for_label }}" style="margin:0;font-weight:bold;">{{ field.label }}</label>
+            </div>
+        {% else %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}:</label>
+            {{ field }}
+        {% endif %}
+        {% if field.errors %}
+            <div style="color:#c62828;margin-top:4px;">{{ field.errors }}</div>
+        {% endif %}
+        {% if field.help_text %}
+            <small style="color:#888;">{{ field.help_text }}</small>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if form.non_field_errors %}
+    <div style="color:#c62828;margin-bottom:12px;">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <button type="submit" class="btn btn-success">Save</button>
+    <a href="{% url 'tagnid:settings_programs' %}" class="btn btn-secondary">Cancel</a>
+</form>
+</div>
+{% endblock %}
